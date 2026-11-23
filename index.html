@@ -180,6 +180,11 @@
   .video-box video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
   .video-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: default; }
   .video-box canvas.drawing { cursor: crosshair; }
+  .video-box canvas.texting { cursor: text; }
+  .v-text { position: absolute; z-index: 6; display: none; margin: 0; resize: none; overflow: hidden; white-space: pre; border: none; outline: 2px dashed rgba(255,255,255,0.55); outline-offset: 3px;
+    background: rgba(14,14,16,0.92); color: #fff; font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 700; line-height: 1.22; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+  .v-text.show { display: block; }
+  .v-text::placeholder { color: rgba(255,255,255,0.45); }
   .video-box canvas.erasing { cursor: cell; }
   .video-error { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
     text-align: center; padding: 0 24px; background: rgba(11,11,13,0.94); }
@@ -392,6 +397,17 @@
   .lc-acts { display: flex; gap: 6px; }
   .lc-acts .tbtn { flex: 1; justify-content: center; height: 28px; font-size: 12px; padding: 0 6px; gap: 5px; }
   .lc-acts .ic { width: 13px; height: 13px; }
+  /* предыдущие клипы под последним: каждый следующий чуть меньше и бледнее */
+  .recent-clips { display: flex; flex-direction: column; gap: 5px; }
+  .recent-clips:empty { display: none; }
+  .rc-cap { font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); padding: 2px 2px 0; }
+  .rc-item { display: flex; align-items: center; gap: 7px; border-radius: 9px; background: rgba(20,20,24,0.7); border: 1px solid var(--border); cursor: pointer;
+    padding: calc(7px * var(--k)) calc(10px * var(--k)); opacity: var(--o); transition: border-color .15s, opacity .15s; min-width: 0; }
+  .rc-item:hover { border-color: var(--accent-line); opacity: 1; }
+  .rc-item.fresh { animation: lcIn .45s ease-out; }
+  .rc-nm { flex: 1; min-width: 0; font-size: calc(12.5px * var(--k)); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rc-meta { flex: none; display: flex; align-items: center; gap: 4px; font-size: calc(11px * var(--k)); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rc-meta .ic { width: 11px; height: 11px; flex: none; color: var(--faint); }
   .split-last { display: none !important; }
   /* полоса о сроке ключа */
   .lic-bar { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 90; display: none; align-items: center; gap: 12px; max-width: calc(100% - 40px);
@@ -730,6 +746,18 @@
   .ed-out { position: absolute; top: 10px; left: 10px; display: none; padding: 4px 9px; border-radius: 6px; background: rgba(14,14,16,0.8); color: var(--muted);
     font-size: 11px; font-weight: 600; letter-spacing: 0.04em; pointer-events: none; }
   .ed-out.show { display: block; }
+  .ed-ai { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: none; flex-direction: column; gap: 6px; align-items: center; max-width: 80%; padding: 7px 13px; border-radius: 9px;
+    background: rgba(14,14,16,0.9); border: 1px solid var(--border2); color: var(--text); font-size: 12.5px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.45); pointer-events: none; }
+  .ed-ai.show { display: flex; }
+  .ed-ai.err { border-color: rgba(229,72,77,0.7); color: #FF9A9D; }
+  .ed-ai.ok { border-color: rgba(63,185,122,0.6); }
+  .ed-ai-bar { display: none; width: 180px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.12); overflow: hidden; }
+  .ed-ai.prog .ed-ai-bar { display: block; }
+  .ed-ai-bar b { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .ei-in { width: 100%; height: 30px; padding: 0 9px; border-radius: 7px; background: rgba(12,12,14,0.6); border: 1px solid var(--border2); color: var(--text); font: inherit; font-size: 13px; }
+  .ei-in:focus { outline: none; border-color: var(--accent); }
+  .ei-sw { display: flex; flex-wrap: wrap; gap: 5px; }
+  .ei-sw .swatch { width: 18px; height: 18px; }
 
   .ed-insp { width: 290px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; padding: 14px 14px 20px; display: flex; flex-direction: column; gap: 14px; }
   .ei-h { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
@@ -1084,6 +1112,7 @@
       <button class="rtool" id="toolRect" data-tool="rect"><svg class="ic"><use href="#i-square"/></svg></button>
       <button class="rtool" id="toolSpot" data-tool="spot"><svg class="ic"><use href="#i-spot"/></svg></button>
       <button class="rtool" id="toolPos" data-tool="pos"><svg class="ic"><use href="#i-pos"/></svg></button>
+      <button class="rtool" id="toolText" data-tool="text"><svg class="ic"><use href="#i-text"/></svg></button>
       <button class="rtool" id="toolRing" data-tool="ring"><svg class="ic"><use href="#i-ring"/></svg></button>
       <button class="rtool" id="toolEraser" data-tool="eraser"><svg class="ic"><use href="#i-eraser"/></svg></button>
       <div class="rail-sep"></div>
@@ -1103,6 +1132,7 @@
     <section class="work" id="work">
       <div class="stage" id="stage">
         <div class="video-box" id="videoBox">
+          <textarea class="v-text" id="vText" rows="1" spellcheck="false" autocomplete="off"></textarea>
           <video id="video" preload="auto"></video>
           <canvas id="drawCanvas"></canvas>
           <div class="video-error" id="videoError">
@@ -1137,6 +1167,7 @@
           <div class="lc-meta" id="lcMeta"></div>
           <div class="lc-acts"><button type="button" class="tbtn sm" id="lcPlay"><svg class="ic solid"><use href="#i-play"/></svg><span data-i18n="lc_play">С начала</span></button><button type="button" class="tbtn sm" id="lcEdit"><svg class="ic"><use href="#i-pen"/></svg><span data-i18n="lc_edit">Редактор</span></button></div>
         </div>
+        <div class="recent-clips" id="recentClips"></div>
         </aside>
         <aside class="hl-panel" id="hlPanel">
           <div class="hl-head"><span class="hl-title"><svg class="ic"><use href="#i-player"/></svg><span data-i18n="hl_title">Подсветка игрока</span></span><button class="hl-x" id="hlClose">×</button></div>
@@ -1420,7 +1451,7 @@
 
   const PALETTE = ['#E3343C', '#E8801E', '#F2C14E', '#F5F7FA', '#4FB8E8', '#4CC38A', '#9B6BFF', '#E85BA8', '#8D8D95', '#111111'];
   const WIDTH_MULT = [1, 1.8, 3];
-  const TOOLS = ['cursor', 'pen', 'line', 'arrow', 'darrow', 'ellipse', 'rect', 'spot', 'pos', 'ring', 'eraser'];
+  const TOOLS = ['cursor', 'pen', 'line', 'arrow', 'darrow', 'ellipse', 'rect', 'spot', 'pos', 'text', 'ring', 'eraser'];
 
   // Действия, на которые можно назначить клавишу. Подписи берутся из словаря (hk_<действие>).
   const ACTIONS = ['playPause', 'speedFast', 'speedSlow', 'seekBack5', 'seekFwd5', 'seekBack1', 'seekFwd1', 'frameBack', 'frameFwd', 'markIn', 'markOut', 'saveClip', 'toggleDraw', 'toggleMute'];
@@ -1447,6 +1478,7 @@
 
   // ---------- DOM ----------
   const video = $('video'), videoBox = $('videoBox'), stage = $('stage'), canvas = $('drawCanvas');
+  const vText = $('vText');
   const ctx = canvas.getContext('2d');
   const loadVideoBtn = $('loadVideoBtn'), fileLabel = $('fileLabel'), fileChip = $('fileChip'), saveStatus = $('saveStatus');
   const homeView = $('homeView'), homeOpenBtn = $('homeOpenBtn'), projectList = $('projectList'), brandHome = $('brandHome');
@@ -1495,6 +1527,7 @@
   let selectedClipId = null;
   let clipEnd = null;
   let tool = 'cursor', lastDrawTool = 'pen';
+  let textState = null, textEd = null; // инструмент «Текст»: перетаскивание и открытое поле ввода
   let drawMode = false;
   let brushColor = PALETTE[0], brushWidth = 2;
   let isDrawing = false, currentShape = null, shapeStartTime = 0;
@@ -1551,6 +1584,17 @@
     keys.forEach((k) => { if (recordingTags[k].start > recordingTags[latest].start) latest = k; });
     return latest; // рисуем всегда в контексте последнего запущенного тега
   }
+  // Куда идут подсветки игроков: идёт запись тега — в неё (при завершении тега попадут в клип вместе с рисунками),
+  // иначе — в выбранный клип или черновик. create — завести массив, если его ещё нет.
+  function liveHls(create) {
+    const rk = activeRecordingKey();
+    if (rk) { const r = recordingTags[rk]; return r.hls || (r.hls = []); }
+    // выбранный клип — только если кадр внутри него; за его границами подсветка не должна попасть в чужой клип
+    const sc = selectedClipId && clipById(selectedClipId), tm = video.currentTime;
+    const k = sc && (tm < sc.start - 0.05 || tm > sc.end + 0.05) ? 'scratch' : drawKey();
+    if (create && !highlightsByKey[k]) highlightsByKey[k] = [];
+    return highlightsByKey[k] || [];
+  }
   function toFileUrl(p) {
     let pathName = p.replace(/\\/g, '/');
     if (pathName[0] !== '/') pathName = '/' + pathName;
@@ -1582,7 +1626,7 @@
       tag_del_ok: 'Удалить', tag_del_cancel: 'Отмена', tag_deleted: 'Тег «{name}» удалён',
       tag_key_title: 'Горячая клавиша тега', hk_set: 'Назначено: {name} → {combo}',
       hold_label: 'Пауза на рисунке', hold_off: 'Выкл', hold_s: 'с',
-      split_label: 'Журнал клипов ({n}) ▲', lc_cap: 'Последний клип', lc_play: 'С начала', lc_edit: 'Редактор', lc_tip: 'Щелчок — смотреть клип с начала, правая кнопка — редактор клипа. Название можно исправить прямо здесь.',
+      split_label: 'Журнал клипов ({n}) ▲', lc_cap: 'Последний клип', lc_play: 'С начала', lc_edit: 'Редактор', lc_tip: 'Щелчок — смотреть клип с начала, правая кнопка — редактор клипа. Название можно исправить прямо здесь.', rc_cap: 'Ранее', lc_tip_short: 'Щелчок — смотреть с начала, правая кнопка — редактор клипа',
       cp_title: 'Клип снят', cp_hint: 'Enter — сохранить и смотреть дальше · Esc — оставить название', cp_edit: 'Редактор клипа', cp_ok: 'Сохранить',
       settings_mode: 'Режим работы', mode_normal: 'Обычный', mode_relax: 'Relax', mode_relax_on: 'Режим Relax: инструменты появляются, когда подводите мышь к краю экрана.',
       settings_mode_hint: '«Relax» — видео занимает всё рабочее место. Теги, рисование, подсказки и плеер прячутся и появляются, когда подводите мышь к краю: теги — сверху, рисование — слева, подсказки — справа, плеер и журнал клипов — снизу. Снятый клип (F — начало, F — конец) сразу предлагается подписать: Enter — сохранить и смотреть дальше.', slow_mark: 'Клип замедлен', split_last: 'Последний', split_last_tip: 'Последний снятый клип — щелчок воспроизводит его',
@@ -1675,7 +1719,8 @@
       tool_cursor: 'Курсор (выйти из рисования)', tool_pen: 'Кисть', tool_line: 'Линия', tool_arrow: 'Стрелка', tool_darrow: 'Пунктирная стрелка — передача', tool_spot: 'Выделение области — всё вокруг затемняется', tool_pos: 'Позиция: щелчок по игроку — программа вырежет его, или обведите игрока мышью. Потом перетащите его туда, где он должен быть; колёсико — меньше/больше',
       pos_finding: 'Выделяю игрока…', pos_cutting: 'Вырезаю…', pos_download: 'Скачиваю нейросеть для выделения… {p}%', pos_fail: 'Не получилось выделить игрока.', pos_try_lasso: 'Обведите игрока мышью — он вырежется по контуру.',
       pos_drag: 'Игрок выделен — перетащите его туда, где он должен быть. Колёсико мыши — меньше/больше.', pos_small: 'Контур слишком маленький — обведите игрока целиком.',
-      tool_ellipse: 'Круг / овал', tool_rect: 'Прямоугольник', tool_ring: 'Круг под игроком', tool_eraser: 'Ластик',
+      tool_ellipse: 'Круг / овал', tool_rect: 'Прямоугольник', tool_ring: 'Круг под игроком', tool_eraser: 'Ластик', tool_text: 'Текст: щелчок по стоп-кадру — написать, Enter — готово. Надпись можно перетащить; щелчок по ней — исправить, правая кнопка — удалить. Размер — кнопками толщины',
+      text_ph: 'Текст…',
       undo: 'Отменить последний объект', clear: 'Очистить всё', thickness: 'Толщина', custom_color: 'Свой цвет',
       draw_mode: 'Рисование', rec_badge: 'ЗАПИСЬ ТЕГОВ ({n}) — рисуете для «{tag}»',
       saved_at: 'Сохранено в', mute: 'Звук', volume: 'Громкость', speed: 'Скорость', play_pause: 'Пауза / воспроизведение',
@@ -1721,7 +1766,7 @@
       tag_del_ok: 'Delete', tag_del_cancel: 'Cancel', tag_deleted: 'Tag “{name}” deleted',
       tag_key_title: 'Tag hotkey', hk_set: 'Assigned: {name} → {combo}',
       hold_label: 'Pause on drawing', hold_off: 'Off', hold_s: 's',
-      split_label: 'Clip log ({n}) ▲', lc_cap: 'Last clip', lc_play: 'From start', lc_edit: 'Editor', lc_tip: 'Click to watch the clip from the start, right-click for the clip editor. You can rename it right here.',
+      split_label: 'Clip log ({n}) ▲', lc_cap: 'Last clip', lc_play: 'From start', lc_edit: 'Editor', lc_tip: 'Click to watch the clip from the start, right-click for the clip editor. You can rename it right here.', rc_cap: 'Earlier', lc_tip_short: 'Click to watch from the start, right-click for the clip editor',
       cp_title: 'Clip recorded', cp_hint: 'Enter — save and keep watching · Esc — keep the name', cp_edit: 'Clip editor', cp_ok: 'Save',
       settings_mode: 'Work mode', mode_normal: 'Normal', mode_relax: 'Relax', mode_relax_on: 'Relax mode: tools appear when you move the mouse to the screen edge.',
       settings_mode_hint: '“Relax” — the video takes the whole workspace. Tags, drawing, tips and the player hide and appear when you move the mouse to an edge: tags — top, drawing — left, tips — right, player and clip log — bottom. A recorded clip (F — start, F — end) is offered for naming right away: Enter — save and keep watching.', slow_mark: 'Slow-motion clip', split_last: 'Last', split_last_tip: 'Last recorded clip — click to play it',
@@ -1814,7 +1859,8 @@
       tool_cursor: 'Cursor (leave drawing)', tool_pen: 'Brush', tool_line: 'Line', tool_arrow: 'Arrow', tool_darrow: 'Dashed arrow — pass', tool_spot: 'Spotlight — everything around is darkened', tool_pos: 'Position: click a player to cut him out, or outline him with the mouse. Then drag him where he should be; wheel — smaller/bigger',
       pos_finding: 'Selecting the player…', pos_cutting: 'Cutting out…', pos_download: 'Downloading the selection model… {p}%', pos_fail: 'Could not select the player.', pos_try_lasso: 'Outline the player with the mouse — he will be cut along the outline.',
       pos_drag: 'Player selected — drag him where he should be. Mouse wheel — smaller/bigger.', pos_small: 'The outline is too small — outline the whole player.',
-      tool_ellipse: 'Circle / oval', tool_rect: 'Rectangle', tool_ring: 'Player ring', tool_eraser: 'Eraser',
+      tool_ellipse: 'Circle / oval', tool_rect: 'Rectangle', tool_ring: 'Player ring', tool_eraser: 'Eraser', tool_text: 'Text: click the frozen frame to write, Enter — done. Drag a label to move it; click it to edit, right-click to delete. Size — the thickness buttons',
+      text_ph: 'Text…',
       undo: 'Undo last object', clear: 'Clear all', thickness: 'Thickness', custom_color: 'Custom color',
       draw_mode: 'Drawing', rec_badge: 'RECORDING TAGS ({n}) — drawing for “{tag}”',
       saved_at: 'Saved at', mute: 'Sound', volume: 'Volume', speed: 'Speed', play_pause: 'Play / pause',
@@ -2211,7 +2257,7 @@
     }
   }
   function hasOverlayContent() {
-    return drawingActive() || isDrawing || hlMode || (strokesByKey[drawKey()] || []).length > 0 || (highlightsByKey[drawKey()] || []).length > 0 || (graphicsByKey[drawKey()] || []).length > 0 || canvasDirty;
+    return drawingActive() || isDrawing || hlMode || (strokesByKey[drawKey()] || []).length > 0 || liveHls().length > 0 || (graphicsByKey[drawKey()] || []).length > 0 || canvasDirty;
   }
   function rafLoop() { uiTick(); rafId = video.paused ? 0 : requestAnimationFrame(rafLoop); }
   function cancelRaf() { if (rafId) cancelAnimationFrame(rafId); rafId = 0; }
@@ -2493,14 +2539,33 @@
   function renderSideClip(fresh) {
     const box = $('lastClip'), c = clips[clips.length - 1];
     box.classList.toggle('show', !!c);
-    if (!c) { lcId = null; return; }
+    if (!c) { lcId = null; renderRecentClips(); return; }
     if (lcId !== c.id || fresh) { box.classList.remove('fresh'); void box.offsetWidth; if (lcId && lcId !== c.id) box.classList.add('fresh'); }
     lcId = c.id;
     const nm = $('lcName'); if (document.activeElement !== nm) nm.value = c.name;
     $('lcNum').textContent = clips.length + ' / ' + clips.length;
     $('lcMeta').innerHTML = (c.tag ? '<b>' + esc(c.tag) + '</b> · ' : '') + fmt(c.start) + '–' + fmt(c.end) + ' · ' + Math.max(0, Math.round(c.end - c.start)) + ' ' + esc(t('sec_short'));
     box.title = t('lc_tip');
+    renderRecentClips();
   }
+  // ещё 4 клипа до последнего — друг под другом, каждый следующий чуть меньше
+  let rcIds = '';
+  function renderRecentClips() {
+    const el = $('recentClips'), list = clips.slice(Math.max(0, clips.length - 5), clips.length - 1).reverse();
+    const ids = list.map((c) => c.id).join(',');
+    const shift = rcIds && ids && rcIds !== ids && ids.split(',')[0] !== rcIds.split(',')[0]; // список сдвинулся — новый клип
+    rcIds = ids;
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="rc-cap">' + esc(t('rc_cap')) + '</div>' + list.map((c, i) => {
+      const k = [0.96, 0.92, 0.88, 0.84][i], o = [0.95, 0.86, 0.77, 0.68][i];
+      const marks = (hasDrawing(c.id) ? ico('pen') : '') + (hasHl(c.id) ? ico('player') : '') + (hasGfx(c.id) ? ico('text') : '');
+      return '<div class="rc-item' + (shift && i === 0 ? ' fresh' : '') + '" data-id="' + esc(c.id) + '" style="--k:' + k + ';--o:' + o + '" title="' + esc(c.name + (c.tag ? ' · ' + c.tag : '') + ' · ' + fmt(c.start) + '–' + fmt(c.end) + '\n' + t('lc_tip_short')) + '">' +
+        '<span class="rc-nm">' + esc(c.name) + '</span>' +
+        '<span class="rc-meta">' + marks + '<span>' + fmt(c.start) + '</span></span></div>';
+    }).join('');
+  }
+  $('recentClips').addEventListener('click', (e) => { const it = e.target.closest('.rc-item'); const c = it && clipById(it.dataset.id); if (c) playClip(c); });
+  $('recentClips').addEventListener('contextmenu', (e) => { const it = e.target.closest('.rc-item'); if (!it) return; e.preventDefault(); if (clipById(it.dataset.id)) openClipEditor(it.dataset.id); });
   function renameClip(c, name) {
     const v = (name || '').trim(); if (!c || !v || v === c.name) return;
     c.name = v; renderClips(); scheduleProjectSave();
@@ -2770,18 +2835,29 @@
     if (pendingBlock()) return;
     if (recordingTags[tagName]) {
       // завершить именно эту запись, не трогая остальные активные теги
-      const { start, strokes } = recordingTags[tagName];
+      const { start, strokes, hls } = recordingTags[tagName];
       delete recordingTags[tagName];
       const end = video.currentTime;
       if (end > start) {
         const countSameTag = clips.filter((c) => c.tag === tagName).length;
         const clip = addClip((clips.length + 1) + '. ' + tagName + ' ' + (countSameTag + 1), start, end, tagName);
         strokesByKey[clip.id] = strokes;
+        // подсветки игроков, сделанные за время записи; тот же массив — если слежение ещё идёт, результат попадёт сюда
+        if (hls) highlightsByKey[clip.id] = hls;
+        // подсветки, сделанные до тега (без записи), которые идут в это время, — тоже в клип
+        const scr = highlightsByKey.scratch || [];
+        const mine = scr.filter((x) => x.to > start + 0.1 && x.from < end - 0.1);
+        if (mine.length) {
+          highlightsByKey.scratch = scr.filter((x) => mine.indexOf(x) < 0);
+          (highlightsByKey[clip.id] = highlightsByKey[clip.id] || []).push(...mine);
+        }
         renderClips(); clipRecorded(clip);
       }
+      if (hlMode) hlRenderList();
       renderClips();
     } else {
-      recordingTags[tagName] = { start: video.currentTime, strokes: [], seq: ++recSeq };
+      recordingTags[tagName] = { start: video.currentTime, strokes: [], hls: [], seq: ++recSeq };
+      if (hlMode) hlRenderList();
     }
     updateDrawUI();
     redraw();
@@ -3164,9 +3240,14 @@
   // рамка «живого» игрока (на новом месте, а пока не двигали — на старом), в долях кадра
   function posBox(s) { const g = posGeom(s); return { x: g.nx, y: g.ny, w: g.nw, h: g.nh }; }
 
+  // надпись, сделанная на основном экране, хранится как рисунок (с паузой на стоп-кадре) — рисуется так же, как текст редактора
+  const TEXT_SIZES = [0.034, 0.045, 0.062];
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  function textGfx(s) { return { type: 'text', text: s.text || '', style: s.style || 'chip', color: s.color, size: s.size || 0.045, x: s.points[0].x, y: s.points[0].y, opacity: 1 }; }
   function drawShape(c, s, w, h, base) {
     const pts = s.points;
     if (!pts || !pts.length) return;
+    if (s.type === 'text') { if (s !== textEditing()) drawGraphic(c, textGfx(s), w, h, 1); return; }
     const lw = base * (WIDTH_MULT[(s.width || 1) - 1] || 1);
     const type = s.type || 'pen';
     if (type === 'pos') { drawPos(c, s, w, h, lw); return; }
@@ -3245,6 +3326,7 @@
     return Math.hypot(px - (ax + tt * dx), py - (ay + tt * dy));
   }
   function distToShape(s, px, py, w, h) {
+    if (s.type === 'text') { const b = gfxLayout(measureCtx, textGfx(s), w, h); return px >= b.x - 4 && px <= b.x + b.w + 4 && py >= b.y - 4 && py <= b.y + b.h + 4 ? 0 : Infinity; }
     if (s.type === 'pos') { // внутри игрока (на новом месте) или его «призрака» — попали
       const inB = (b) => px >= b.x * w - 4 && px <= (b.x + b.w) * w + 4 && py >= b.y * h - 4 && py <= (b.y + b.h) * h + 4;
       return inB(posBox(s)) || inB(s.box) ? 0 : Infinity;
@@ -3318,6 +3400,7 @@
     const tl = curTool();
     if (tl === 'eraser') { isDrawing = true; canvas.setPointerCapture(e.pointerId); eraseAt(e); return; }
     if (tl === 'pos') { posDown(e); return; }
+    if (tl === 'text') { textDown(e); return; }
     isDrawing = true;
     canvas.setPointerCapture(e.pointerId);
     shapeStartTime = video.currentTime;
@@ -3331,6 +3414,8 @@
   canvas.addEventListener('pointermove', (e) => {
     if (blockedDown && e.buttons === 1 && Math.hypot(e.clientX - blockedDown.x, e.clientY - blockedDown.y) > 6) { const w0 = blockedDown.why; blockedDown = null; drawRefuse(w0); return; }
     if (posState) { posMove(e); return; }
+    if (textState) { textMove(e); return; }
+    if (!isDrawing && drawingActive() && curTool() === 'text') { canvas.style.cursor = textHit(getPos(e)) ? 'move' : ''; return; }
     if (!isDrawing && drawingActive() && curTool() === 'pos') { canvas.style.cursor = posWorking ? 'progress' : posHit(getPos(e)) ? 'move' : 'crosshair'; }
     else if (canvas.style.cursor) canvas.style.cursor = '';
     if (!isDrawing || !drawingActive()) return;
@@ -3344,6 +3429,7 @@
   function endShape(e) {
     if (blockedDown) { blockedDown = null; if (e.type === 'pointerup') togglePlay(); return; }
     if (posState) { posUp(e); return; }
+    if (textState) { textUp(e); return; }
     if (!isDrawing) return;
     isDrawing = false;
     try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
@@ -3377,6 +3463,107 @@
   }
   canvas.addEventListener('pointerup', endShape);
   canvas.addEventListener('pointercancel', endShape);
+
+  // ---------- инструмент «Текст» ----------
+  // Щелчок по стоп-кадру — поле для надписи прямо на видео; Enter — готово (Shift+Enter — новая строка), Esc — отмена.
+  // Надпись — такой же рисунок, как стрелка: висит на стоп-кадре всю паузу, стирается ластиком, отменяется «Отменить».
+  function textEditing() { return textEd && textEd.s; }
+  function textList() { const tm = video.currentTime; return activeStrokeArray().filter((s) => s.type === 'text' && s.erasedAt == null && shapeVisible(s, tm)); }
+  function textHit(p) {
+    const w = canvas.width, h = canvas.height, list = textList();
+    for (let i = list.length - 1; i >= 0; i--) if (distToShape(list[i], p.x * w, p.y * h, w, h) === 0) return list[i];
+    return null;
+  }
+  function textDown(e) {
+    textCommit();
+    const p = getPos(e), s = textHit(p);
+    canvas.setPointerCapture(e.pointerId);
+    textState = s ? { mode: 'drag', s, p0: p, x0: s.points[0].x, y0: s.points[0].y, moved: false } : { mode: 'new', p, wasPaused: downWasPaused };
+  }
+  function textMove(e) {
+    const st = textState; if (st.mode !== 'drag') return;
+    const p = getPos(e), dx = p.x - st.p0.x, dy = p.y - st.p0.y;
+    if (!st.moved && Math.hypot(dx * canvas.width, dy * canvas.height) < 4) return;
+    st.moved = true;
+    st.s.points[0] = { x: st.x0 + dx, y: st.y0 + dy };
+    canvas.style.cursor = 'grabbing'; redraw();
+  }
+  function textUp(e) {
+    const st = textState; textState = null;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    canvas.style.cursor = '';
+    if (e.type === 'pointercancel') { redraw(); return; }
+    if (st.mode === 'drag') { if (st.moved) { scheduleProjectSave(); redraw(); } else textOpen(st.s); return; }
+    if (!st.wasPaused && !drawMode) return; // видео шло — щелчок только остановил его
+    textOpen(null, st.p);
+  }
+  function textSize() { return TEXT_SIZES[(brushWidth || 2) - 1] || 0.045; }
+  function textPlace() {
+    if (!textEd) return;
+    const W = canvas.width, H = canvas.height;
+    const g = { type: 'text', text: vText.value || ' ', style: 'chip', color: textEd.color, size: textEd.size, x: textEd.x, y: textEd.y };
+    const L = gfxLayout(measureCtx, g, W, H);
+    vText.style.left = L.x + 'px'; vText.style.top = L.y + 'px';
+    vText.style.width = Math.ceil(L.w + 2) + 'px'; vText.style.height = Math.ceil(L.h) + 'px';
+    vText.style.fontSize = L.fs + 'px';
+    vText.style.padding = L.padY + 'px ' + L.padX + 'px ' + L.padY + 'px ' + (L.padX + L.bar) + 'px';
+    vText.style.borderLeft = L.bar + 'px solid ' + textEd.color;
+  }
+  function textOpen(s, p) {
+    const W = canvas.width, H = canvas.height;
+    if (s) textEd = { s, color: s.color, size: s.size || 0.045, x: s.points[0].x, y: s.points[0].y };
+    else {
+      const size = textSize(), fs = size * H;
+      textEd = { s: null, color: brushColor, size, x: clamp(p.x - 0.008, 0, 0.95), y: clamp(p.y - (fs * 1.22 / 2 + fs * 0.34) / H, 0, 0.95), t: video.currentTime, arr: activeStrokeArray() };
+    }
+    vText.value = s ? s.text || '' : '';
+    vText.placeholder = t('text_ph');
+    vText.classList.add('show');
+    textPlace(); redraw();
+    setTimeout(() => { vText.focus(); if (s) vText.select(); }, 30);
+  }
+  function textCommit(cancel) {
+    if (!textEd) return;
+    const te0 = textEd; textEd = null;
+    vText.classList.remove('show');
+    const val = vText.value.replace(/\s+$/, '');
+    if (!cancel) {
+      if (te0.s) {
+        if (!val.trim()) { const arr = activeStrokeArray(), i = arr.indexOf(te0.s); if (i >= 0) arr.splice(i, 1); }
+        else te0.s.text = val;
+        scheduleProjectSave(); renderClips(); renderFreezeMarks(); updateGuide();
+      } else if (val.trim()) {
+        const W = canvas.width || 1600, H = canvas.height || 900;
+        const st = { type: 'text', text: val, color: te0.color, width: brushWidth, size: te0.size, points: [{ x: te0.x, y: te0.y }], atTime: te0.t, erasedAt: null, hold: holdSeconds > 0 ? holdSeconds : 3 };
+        const L = gfxLayout(measureCtx, textGfx(st), W, H); // не вылезать за край кадра
+        st.points[0] = { x: clamp(te0.x, 0, Math.max(0, 1 - L.w / W)), y: clamp(te0.y, 0, Math.max(0, 1 - L.h / H)) };
+        const arr = te0.arr;
+        arr.push(st);
+        if (drawPending && drawPending.arr === arr && Math.abs(drawPending.t - te0.t) < 0.08) drawPending.items.push(st);
+        else drawPending = { t: te0.t, arr, items: [st] };
+        scheduleProjectSave(); renderClips(); renderFreezeMarks(); updateGuide();
+      }
+    }
+    redraw();
+  }
+  ['keydown', 'keyup', 'keypress'].forEach((ev) => vText.addEventListener(ev, (e) => {
+    e.stopPropagation();
+    if (ev !== 'keydown') return;
+    if (e.key === 'Escape') { e.preventDefault(); textCommit(true); }
+    else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); textCommit(); }
+  }));
+  vText.addEventListener('input', textPlace);
+  vText.addEventListener('blur', () => textCommit());
+  vText.addEventListener('pointerdown', (e) => e.stopPropagation());
+  video.addEventListener('play', () => textCommit());
+  video.addEventListener('seeking', () => textCommit());
+  canvas.addEventListener('contextmenu', (e) => {
+    if (!drawingActive() || curTool() !== 'text') return;
+    const s = textHit(getPos(e)); if (!s) return;
+    e.preventDefault(); e.stopPropagation();
+    const arr = activeStrokeArray(), i = arr.indexOf(s); if (i >= 0) arr.splice(i, 1);
+    redraw(); renderClips(); renderFreezeMarks(); scheduleProjectSave(); updateGuide();
+  });
 
   // ---------- инструмент «Позиция» ----------
   // Щелчок по игроку — нейросеть вырезает его; обвели мышью — режем по контуру. Потом игрока тянут на нужное место,
@@ -3428,6 +3615,15 @@
     b.style.left = (at.x * 100) + '%'; b.style.top = (at.y * 100) + '%';
     $('posBusyText').textContent = text; b.classList.add('show');
   }
+  // ответ нейросети → рисунок «Позиция» (картинка игрока с прозрачным фоном, контур, рамка)
+  function posStrokeFromCut(r, req, color, width) {
+    const cv = document.createElement('canvas'); cv.width = r.crop.pw; cv.height = r.crop.ph;
+    cv.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(r.rgba), r.crop.pw, r.crop.ph), 0, 0);
+    const st = { type: 'pos', color, width, points: r.contour.map((q2) => ({ x: q2[0], y: q2[1] })),
+      box: { x: r.crop.x, y: r.crop.y, w: r.crop.w, h: r.crop.h }, img: cv.toDataURL('image/png'), dx: 0, dy: 0, scale: 1 };
+    if (req.polygon) st.manual = true;
+    return st;
+  }
   async function posCut(req, tm, at) {
     posWorking = true;
     posBusy(at, t(req.polygon ? 'pos_cutting' : 'pos_finding'));
@@ -3437,13 +3633,8 @@
     catch (err) { r = { ok: false, error: String((err && err.message) || err) }; }
     posWorking = false; posBusy(at, '');
     if (!r || !r.ok) { toast(((r && r.error) || t('pos_fail')) + (req.polygon ? '' : ' ' + t('pos_try_lasso')), true); return; }
-    // картинка игрока с прозрачным фоном
-    const cv = document.createElement('canvas'); cv.width = r.crop.pw; cv.height = r.crop.ph;
-    cv.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(r.rgba), r.crop.pw, r.crop.ph), 0, 0);
-    const st = { type: 'pos', color: brushColor, width: brushWidth, points: r.contour.map((q) => ({ x: q[0], y: q[1] })),
-      box: { x: r.crop.x, y: r.crop.y, w: r.crop.w, h: r.crop.h }, img: cv.toDataURL('image/png'), dx: 0, dy: 0, scale: 1,
-      atTime: tm, erasedAt: null, hold: holdSeconds > 0 ? holdSeconds : 3 };
-    if (req.polygon) st.manual = true;
+    const st = posStrokeFromCut(r, req, brushColor, brushWidth);
+    st.atTime = tm; st.erasedAt = null; st.hold = holdSeconds > 0 ? holdSeconds : 3;
     posImg(st);
     const arr = activeStrokeArray();
     arr.push(st);
@@ -3480,7 +3671,8 @@
       ctx.save(); ctx.beginPath(); posState.pts.forEach((p, i) => { if (i) ctx.lineTo(p.x * w, p.y * h); else ctx.moveTo(p.x * w, p.y * h); });
       ctx.lineWidth = Math.max(2, base * 0.6); ctx.setLineDash([7, 5]); ctx.strokeStyle = brushColor; ctx.stroke(); ctx.restore(); any = true;
     }
-    (highlightsByKey[drawKey()] || []).forEach((hh) => { if (drawHighlight(ctx, hh, video.currentTime, w, h)) any = true; });
+    liveHls().forEach((hh) => { if (drawHighlight(ctx, hh, video.currentTime, w, h)) any = true; });
+    if (activeRecordingKey()) (highlightsByKey.scratch || []).forEach((hh) => { if (drawHighlight(ctx, hh, video.currentTime, w, h)) any = true; }); // сделанные до тега — войдут в клип
     if (holdState && holdState.rep && holdState.badge) { drawReplayBadge(ctx, w, h, 1, holdState.rep.speed); any = true; }
     (graphicsByKey[drawKey()] || []).forEach((g) => { if (spanVisible(g.from, g.fromP || 0, g.to, g.toP || 0, tm)) { drawGraphic(ctx, g, w, h, 1); any = true; } });
     if (hlMode) { drawHlPick(ctx, w, h); any = true; }
@@ -3514,7 +3706,9 @@
     updateGuide();
     const shown = active ? curTool() : 'cursor';
     TOOLS.forEach((tn) => { const b = rail.querySelector('[data-tool="' + tn + '"]'); if (b) b.classList.toggle('on', tn === shown); });
-    canvas.classList.toggle('drawing', active && shown !== 'eraser');
+    canvas.classList.toggle('drawing', active && shown !== 'eraser' && shown !== 'text');
+    canvas.classList.toggle('texting', active && shown === 'text');
+    if (!(active && shown === 'text')) textCommit();
     canvas.classList.toggle('erasing', active && shown === 'eraser');
     rail.querySelectorAll('.swatch').forEach((el) => el.classList.toggle('selected', el.dataset.color.toLowerCase() === brushColor.toLowerCase()));
     rail.querySelectorAll('.width-btn').forEach((el) => el.classList.toggle('on', parseInt(el.dataset.w, 10) === brushWidth));
@@ -3892,12 +4086,14 @@
 
   // Рисует подсветку в момент tm (время видео). false — в этот момент её нет.
   function drawHighlight(c, h, tm, W, H) {
-    if (tm < h.from - 1e-6 || tm > h.to + 1e-6) return false;
-    const a = Math.min(ease((tm - h.from) / 0.3), ease((h.to - tm) / 0.3));
+    if (tm < h.from - 0.05 || tm > h.to + 1e-6) return false; // запас: стоп-кадр с рисунком мог встать на соседний кадр
+    // появляется сразу, без плавного входа: подсветку обычно ставят на стоп-кадре, и она должна быть видна
+    // всю паузу на этом кадре (вместе с рисунками), а не проявляться уже после неё; исчезает плавно
+    const a = ease((h.to - tm) / 0.3);
     if (a <= 0.01) return false;
     const s = hlSampleAt(h, tm);
     if (!s) return false;
-    paintHighlight(c, h, s, W, H, a, 1 + 0.35 * (1 - ease((tm - h.from) / 0.4)));
+    paintHighlight(c, h, s, W, H, a, 1);
     return true;
   }
 
@@ -4040,7 +4236,7 @@
   // --- выбранные на кадре игроки ---
   function hlRenderPend(focusLast) {
     hlPendEl.innerHTML = '';
-    const edit = hlEditId ? (highlightsByKey[drawKey()] || []).find((x) => x.id === hlEditId) : null;
+    const edit = hlEditId ? liveHls().find((x) => x.id === hlEditId) : null;
     hlPend.forEach((p, i) => {
       const row = document.createElement('div'); row.className = 'hl-pl-row' + (p.id === hlActive ? ' active' : ''); row.dataset.id = p.id;
       row.innerHTML = '<span class="num">' + (i + 1) + '</span>' +
@@ -4096,7 +4292,7 @@
   function hlAddBox(box) {
     hlStatusKey = '';
     if (hlEditId) {
-      const edit = (highlightsByKey[drawKey()] || []).find((x) => x.id === hlEditId);
+      const edit = liveHls().find((x) => x.id === hlEditId);
       hlPend = [{ id: 'p' + Date.now().toString(36), box, label: edit ? edit.label : '', color: edit ? edit.color : hlColor, logo: edit ? edit.logo || null : hlLogo }];
       hlActive = hlPend[0].id;
     } else {
@@ -4114,7 +4310,7 @@
 
   // --- готовые подсветки ---
   function hlRenderList() {
-    const list = highlightsByKey[drawKey()] || [];
+    const list = liveHls();
     hlList.innerHTML = '';
     if (!list.length) { const d = document.createElement('div'); d.className = 'hl-empty'; d.textContent = t('hl_empty'); hlList.appendChild(d); return; }
     list.forEach((h) => {
@@ -4135,16 +4331,16 @@
   }
   hlList.addEventListener('input', (e) => {
     const row = e.target.closest('.hl-item'); if (!row || !e.target.classList.contains('nm')) return;
-    const h = (highlightsByKey[drawKey()] || []).find((x) => x.id === row.dataset.id); if (!h) return;
+    const h = liveHls().find((x) => x.id === row.dataset.id); if (!h) return;
     h.label = e.target.value.trim(); scheduleProjectSave(); redraw();
   });
   hlList.addEventListener('click', (e) => {
     const row = e.target.closest('.hl-item'); if (!row || e.target.classList.contains('nm')) return;
-    const key = drawKey(), list = highlightsByKey[key] || [];
+    const list = liveHls(true);
     const h = list.find((x) => x.id === row.dataset.id); if (!h) return;
     const btn = e.target.closest('button'), act = btn && btn.dataset.act;
     if (act === 'del') {
-      highlightsByKey[key] = list.filter((x) => x !== h);
+      const di = list.indexOf(h); if (di >= 0) list.splice(di, 1);
       if (hlEditId === h.id) { hlEditId = null; hlPend = []; hlRenderPend(); }
       scheduleProjectSave(); hlRenderList(); renderClips(); redraw(); hlUpdateControls(); hlRefreshStatus();
       return;
@@ -4306,6 +4502,7 @@
 
   // ---------- слежение ----------
   if (window.api && window.api.onAiProgress) window.api.onAiProgress((m) => {
+    if (ed && ed.ai && ed.ai.busy) { edAiProgress(m); return; }
     if (!hlMode) return;
     if (m.type === 'stage') {
       if (m.stage === 'download') hlSetStatus(t('hl_prep_download').replace('{p}', m.percent || 0));
@@ -4317,9 +4514,11 @@
   $('hlCancel').addEventListener('click', () => { window.api.aiCancel(); });
   hlGo.addEventListener('click', async () => {
     if (!hlPend.length || hlBusy || !hlMode) return;
-    const t0 = hlSelT, key = drawKey();
-    const clip = selectedClipId ? clips.find((c) => c.id === selectedClipId) : null;
-    const edit = hlEditId ? (highlightsByKey[key] || []).find((x) => x.id === hlEditId) : null;
+    // список, куда ляжет подсветка, запоминаем сразу: пока идёт слежение, запись тега могут успеть завершить —
+    // подсветка всё равно попадёт в этот клип
+    const t0 = hlSelT, target = liveHls(true);
+    const clip = !activeRecordingKey() && selectedClipId ? clips.find((c) => c.id === selectedClipId) : null;
+    const edit = hlEditId ? target.find((x) => x.id === hlEditId) : null;
     let to;
     if (edit && edit.reqTo > t0 + 0.3) to = edit.reqTo;
     else if (hlDur === 'clip') to = clip && clip.end > t0 + 0.3 ? clip.end : t0 + 10;
@@ -4357,7 +4556,7 @@
       } else {
         h = { id: 'hl-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), label: pl.label || '', style: hlStyle, color: pl.color || hlColor, logo: pl.logo || null,
           from: samples[0].t, to: lastT, reqTo: to, lost, samples };
-        (highlightsByKey[key] = highlightsByKey[key] || []).push(h);
+        target.push(h);
       }
       made++;
       if (firstFrom == null || h.from < firstFrom) firstFrom = h.from;
@@ -4438,7 +4637,7 @@
       // на самом первом/последнем кадре клипа графика не «проявляется», а уже стоит
       if (to > from + 1e-6 && from < total) gItems.push({ g, from, to, fa: from <= 1e-3 ? -1 : from, fb: to >= total - 1e-3 ? Infinity : to });
     });
-    const hlItems = hls.map((hh) => ({ hl: hh, from: outT(Math.max(hh.from, cs)), to: outT(Math.min(hh.to, ce)) }));
+    const hlItems = hls.map((hh) => ({ hl: hh, from: outT(Math.max(hh.from - 0.05, cs)), to: outT(Math.min(hh.to, ce)) })); // с начала паузы на кадре выбора
     // в повторе подсветка показывается снова — там, где отрезок повтора пересекается с её временем
     const repItems = [];
     fz.forEach((f) => {
@@ -5512,13 +5711,16 @@
   const te = (ru, en) => (appSettings.language === 'en' ? en : ru);
   const ED_TOOLS = [
     ['select', 'cursor', 'V'], ['pen', 'pen', 'B'], ['line', 'line', 'L'], ['arrow', 'arrow', 'W'], ['darrow', 'arrow-dash', 'P'],
-    ['ellipse', 'circle', 'C'], ['rect', 'square', 'R'], ['spot', 'spot', 'S'], ['ring', 'ring', 'O'], ['text', 'text', 'T'], ['image', 'image', 'I'],
+    ['ellipse', 'circle', 'C'], ['rect', 'square', 'R'], ['spot', 'spot', 'S'], ['ring', 'ring', 'O'], ['pos', 'pos', 'U'], ['player', 'player', 'K'],
+    ['text', 'text', 'T'], ['image', 'image', 'I'],
   ];
   const ED_TOOL_NAMES = {
     select: ['Выбор и перемещение', 'Select and move'], pen: ['Карандаш', 'Pen'], line: ['Линия', 'Line'], arrow: ['Стрелка', 'Arrow'],
     darrow: ['Пунктирная стрелка — передача', 'Dashed arrow — pass'], spot: ['Выделение области', 'Spotlight'],
     ellipse: ['Эллипс', 'Ellipse'], rect: ['Прямоугольник', 'Rectangle'], ring: ['Кольцо под игроком', 'Player ring'],
     text: ['Текст', 'Text'], image: ['Картинка', 'Image'],
+    pos: ['Позиция: щелчок по игроку — вырезать, обвести мышью — вырезать по контуру; потом перетащить, колёсико — размер', 'Position: click a player to cut him out or outline him; then drag, wheel — size'],
+    player: ['Подсветка игрока (ИИ): щелчок по рамке игрока или обведите его — программа проследит за ним', 'Player highlight (AI): click a player box or outline him — the program follows him'],
   };
   const ED_SHAPE_NAMES = { pen: ['Линия от руки', 'Freehand'], line: ['Линия', 'Line'], arrow: ['Стрелка', 'Arrow'], ellipse: ['Эллипс', 'Ellipse'], rect: ['Прямоугольник', 'Rectangle'], ring: ['Кольцо', 'Ring'], spot: ['Выделение области', 'Spotlight'], pos: ['Позиция игрока', 'Player position'] };
   const ED_SHAPE_ICONS = { pen: 'pen', line: 'line', arrow: 'arrow', ellipse: 'circle', rect: 'square', ring: 'ring', spot: 'spot', pos: 'pos' };
@@ -5630,7 +5832,7 @@
     });
     const pauseOf = (tm) => { let best = null; groups.forEach((f) => { if (!f.rep && f.t <= tm + 1e-6 && tm - f.t < 0.08) best = f; }); return best ? pauses.concat(pausesOut).find((p) => !p.rep && Math.abs(p.t - best.t) < 1e-6) : null; };
     // рисунок «с паузой» → рисунок, который виден всю эту паузу
-    const strokes = [];
+    const strokes = [], textGfxs = [];
     (strokesByKey[key] || []).forEach((s0) => {
       if (s0.hold > 0 && s0.erasedAt != null) return; // стёртый — его и так не видно
       const s = JSON.parse(JSON.stringify(s0));
@@ -5640,9 +5842,14 @@
         if (p) { s.atTime = p.t; s.atP = 0; s.erasedAt = p.t; s.erasedP = p.dur; }
         s.hold = 0;
       }
+      // надпись с основного экрана — в редакторе это обычный текст (размер, стиль, время показа)
+      if (s.type === 'text') {
+        textGfxs.push(Object.assign(textGfx(s), { id: s.id, from: s.atTime || 0, fromP: s.atP || 0, to: s.erasedAt, toP: s.erasedP || 0 }));
+        return;
+      }
       strokes.push(s);
     });
-    const gfx = JSON.parse(JSON.stringify(graphicsByKey[key] || []));
+    const gfx = JSON.parse(JSON.stringify(graphicsByKey[key] || [])).concat(textGfxs);
     const hls = (highlightsByKey[key] || []).map((h) => { const p = Object.create(h); p.from = h.from; p.to = h.to; return { h, p, id: h.id || edUid() }; });
     ed = {
       clip, key, W0, W1, start: clip.start, end: clip.end, name: clip.name,
@@ -5653,7 +5860,7 @@
         .map((x) => ({ id: edUid(), a: x.a, b: x.b, speed: clamp(x.speed || 0.5, 0.1, 1) })),
       slowOpen: null, mute: !!clip.mute,
       ph: 0, playing: false, frozen: null, lastSrc: 0, lastNow: 0, raf: 0,
-      undo: [], redo: [], dirty: false, drag: null, shape: null, editing: false,
+      undo: [], redo: [], dirty: false, drag: null, shape: null, editing: false, ai: null, lasso: null,
     };
     buildEditor();
     ed.ph = eClipO().s;
@@ -5700,20 +5907,21 @@
     if (pz.length) pausesByKey[key] = pz; else delete pausesByKey[key];
     if (ed.gfx.length) graphicsByKey[key] = JSON.parse(JSON.stringify(ed.gfx)); else delete graphicsByKey[key];
     const keep = ed.hls.filter((x) => !x.del);
-    keep.forEach((x) => { x.h.from = x.p.from; x.h.to = x.p.to; });
+    keep.forEach((x) => { x.h.from = x.p.from; x.h.to = x.p.to; ['label', 'color', 'style'].forEach((k) => { if (Object.prototype.hasOwnProperty.call(x.p, k)) x.h[k] = x.p[k]; }); });
     if (keep.length) highlightsByKey[key] = keep.map((x) => x.h); else delete highlightsByKey[key];
   }
 
   // ---------- отмена / повтор ----------
   function edSnapshot() {
-    return JSON.stringify({ start: ed.start, end: ed.end, name: ed.name, slows: ed.slows, mute: ed.mute, strokes: ed.strokes, pauses: ed.pauses, gfx: ed.gfx, hls: ed.hls.map((x) => ({ from: x.p.from, to: x.p.to, del: !!x.del })) });
+    return JSON.stringify({ start: ed.start, end: ed.end, name: ed.name, slows: ed.slows, mute: ed.mute, strokes: ed.strokes, pauses: ed.pauses, gfx: ed.gfx, hls: ed.hls.map((x) => ({ from: x.p.from, to: x.p.to, del: !!x.del, label: x.p.label, color: x.p.color, style: x.p.style })) });
   }
   function edRestore(js) {
     const d = JSON.parse(js);
     ed.start = d.start; ed.end = d.end; ed.name = d.name; ed.strokes = d.strokes; ed.pauses = d.pauses; ed.gfx = d.gfx;
     ed.slows = d.slows || []; ed.slowOpen = null; ed.mute = !!d.mute;
     if (!(ed.frozen && ed.frozen.rep)) edV.muted = edMuted();
-    d.hls.forEach((x, i) => { const h = ed.hls[i]; if (h) { h.p.from = x.from; h.p.to = x.to; h.del = x.del; } });
+    // подсветки, сделанные в редакторе после этого шага, при отмене прячутся (при повторе — возвращаются)
+    ed.hls.forEach((h, i) => { const x = d.hls[i]; if (!x) { h.del = true; return; } h.p.from = x.from; h.p.to = x.to; h.del = x.del; h.p.label = x.label; h.p.color = x.color; h.p.style = x.style; });
     if (ed.sel && !edFind(ed.sel.kind, ed.sel.id)) ed.sel = null;
   }
   function edPush() { ed.undo.push(edSnapshot()); if (ed.undo.length > 120) ed.undo.shift(); ed.redo = []; ed.dirty = true; edUpdateTop(); }
@@ -5748,7 +5956,7 @@
       '<div class="ed-mid">' +
         '<aside class="rail ed-rail"></aside>' +
         '<div class="ed-stage"><div class="ed-box"><video class="ed-video" preload="auto"></video><canvas class="ed-canvas"></canvas>' +
-          '<div class="ed-badge"></div><div class="ed-out">' + esc(te('Вне клипа', 'Outside the clip')) + '</div></div>' +
+          '<div class="ed-badge"></div><div class="ed-out">' + esc(te('Вне клипа', 'Outside the clip')) + '</div><div class="ed-ai"><span class="ed-ai-t"></span><i class="ed-ai-bar"><b></b></i></div></div>' +
           '<input type="file" class="ed-file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg" style="display:none"></div>' +
         '<aside class="ed-insp"></aside>' +
       '</div>' +
@@ -5850,13 +6058,23 @@
   }
   function edSetTool(id) {
     if (id === 'image') { q('.ed-file').click(); return; }
+    if (ed.ai && ed.ai.busy) return; // идёт слежение / вырезание — дождитесь
+    const was = ed.tool;
     ed.tool = id; edUpdateRail();
+    if (id === 'player') { if (ed.playing) edStop(); edAiSchedule(0); }
+    else if (was === 'player') { ed.ai = null; edAiStatus(''); edDraw(); }
+    if (id === 'pos' && was !== 'pos') edAiStatus(te('Щёлкните по игроку — программа вырежет его. Или обведите игрока мышью.', 'Click a player to cut him out, or outline him with the mouse.'), 'hint', 4000);
   }
   // цвет и толщина: и для новых рисунков, и для выбранного объекта
   function edSetColor(c, live) {
     ed.color = c; brushColor = c;
     const o = edSelObj();
-    if (o && (ed.sel.kind === 'stroke' || (ed.sel.kind === 'gfx' && o.type === 'text'))) {
+    if (o && ed.sel.kind === 'hl') {
+      if (live) edBegin(); else edPush();
+      o.p.color = c;
+      if (!live) edEnd();
+      edRenderInspector(); edRenderTimeline();
+    } else if (o && (ed.sel.kind === 'stroke' || (ed.sel.kind === 'gfx' && o.type === 'text'))) {
       if (live) edBegin(); else edPush();
       o.color = c;
       if (!live) edEnd();
@@ -5919,6 +6137,7 @@
     edV.pause();
     edV.playbackRate = 1; edV.muted = edMuted();
     if (wasRep) { const pos = eOToPos(ed.ph); edV.currentTime = eSrcAt(pos); }
+    if (ed.tool === 'player') edAiSchedule();
     edSetPlayIcon(); edDraw(); edUpdatePlayhead();
   }
   function edTick(now) {
@@ -5969,6 +6188,7 @@
     const src = eSrcAt(eOToPos(ed.ph));
     if (Math.abs(edV.currentTime - src) > 1e-4) edV.currentTime = src;
     edDraw(); edUpdatePlayhead(); edUpdateTimeText();
+    if (ed.tool === 'player') edAiSchedule();
   }
   // перемотка клавишами: если шёл просмотр — он продолжается с нового места
   function edJump(d) {
@@ -6006,6 +6226,11 @@
       drawReplayBadge(c, W, H, ed.playing ? gfxAlpha(s0, s0 + pos.pause.dur, o + 1e-3) : 1, pos.pause.rep.speed);
     }
     if (ed.shape) drawShape(c, ed.shape, W, H, base);
+    if (ed.lasso && ed.lasso.far && ed.lasso.pts.length > 1) {
+      c.save(); c.beginPath(); ed.lasso.pts.forEach((p, i) => { if (i) c.lineTo(p.x * W, p.y * H); else c.moveTo(p.x * W, p.y * H); });
+      c.lineWidth = Math.max(2, base * 0.6); c.setLineDash([7, 5]); c.strokeStyle = ed.color; c.stroke(); c.restore();
+    }
+    if (ed.tool === 'player' && ed.ai) edAiDraw(c, W, H, src);
     // рамка выбранного объекта
     const so = edSelObj();
     if (so && (ed.sel.kind === 'gfx' || ed.sel.kind === 'stroke') && eVisibleAt(ed.sel.kind, so, o)) {
@@ -6033,6 +6258,7 @@
     q('.ed-out').classList.toggle('show', o < r.s - 1e-3 || o > r.e + 1e-3);
   }
   function strokeBox(s, W, H) {
+    if (s.type === 'text') { const b = gfxLayout(measureCtx, textGfx(s), W, H); return { x: b.x, y: b.y, w: b.w, h: b.h }; }
     if (s.type === 'pos') { const b = posBox(s); return { x: b.x * W, y: b.y * H, w: b.w * W, h: b.h * H }; }
     let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
     const pts = s.type === 'ring' ? (() => { const a = s.points[0], b = s.points[s.points.length - 1]; const rx = Math.max(6 / W, Math.abs(b.x - a.x)); const ry = rx * 0.36 * W / H; return [{ x: a.x - rx, y: a.y - ry }, { x: a.x + rx, y: a.y + ry }]; })() : s.points;
@@ -6113,6 +6339,24 @@
         edSelect(null);
         return;
       }
+      if (tool === 'pos') {
+        if (ed.ai && ed.ai.busy) return;
+        const hit = edHit(px, py);
+        if (hit && hit.kind === 'stroke' && hit.obj.type === 'pos') { // уже вырезанного игрока — двигаем
+          edSelect('stroke', hit.obj.id); edPush();
+          ed.drag = { mode: 'move', kind: 'stroke', obj: hit.obj, p0: p, moved: false, dx0: hit.obj.dx || 0, dy0: hit.obj.dy || 0 };
+          edC.setPointerCapture(e.pointerId); return;
+        }
+        edC.setPointerCapture(e.pointerId);
+        ed.lasso = { pts: [p], x0: e.clientX, y0: e.clientY, far: false };
+        return;
+      }
+      if (tool === 'player') {
+        if (!ed.ai || ed.ai.busy) return;
+        edC.setPointerCapture(e.pointerId);
+        ed.ai.drag = { a: p, b: p, moved: false };
+        return;
+      }
       // рисование
       edC.setPointerCapture(e.pointerId);
       ed.shape = { type: tool === 'darrow' ? 'arrow' : tool, color: ed.color, width: ed.width, points: [p] };
@@ -6127,6 +6371,19 @@
         if (ed.shape.type === 'pen') ed.shape.points.push(p); else ed.shape.points[1] = p;
         edDraw(); return;
       }
+      if (ed.lasso) {
+        const L0 = ed.lasso;
+        if (Math.hypot(e.clientX - L0.x0, e.clientY - L0.y0) > 10) L0.far = true;
+        const last = L0.pts[L0.pts.length - 1];
+        if (Math.hypot((p.x - last.x) * edC.width, (p.y - last.y) * edC.height) > 2) L0.pts.push(p);
+        edDraw(); return;
+      }
+      if (ed.tool === 'player' && ed.ai) {
+        if (ed.ai.drag) { ed.ai.drag.b = p; if (Math.hypot((p.x - ed.ai.drag.a.x) * edC.clientWidth, (p.y - ed.ai.drag.a.y) * edC.clientHeight) > 6) ed.ai.drag.moved = true; edDraw(); return; }
+        const hv = edAiHit(p); if (hv !== ed.ai.hover) { ed.ai.hover = hv; edC.style.cursor = hv >= 0 ? 'pointer' : ''; edDraw(); }
+        return;
+      }
+      if (!ed.drag && ed.tool === 'pos') { const W0 = edC.width, H0 = edC.height, hh = edHit(p.x * W0, p.y * H0); edC.style.cursor = hh && hh.kind === 'stroke' && hh.obj.type === 'pos' ? 'move' : ''; return; }
       const d = ed.drag;
       if (!d) {
         // курсор над объектами
@@ -6165,6 +6422,27 @@
     const up = (e) => {
       if (!ed) return;
       try { edC.releasePointerCapture(e.pointerId); } catch (err) {}
+      if (ed.lasso) {
+        const L0 = ed.lasso; ed.lasso = null; edDraw();
+        if (e.type === 'pointercancel') return;
+        if (L0.far && L0.pts.length >= 6) {
+          let pts = L0.pts; const step = Math.ceil(pts.length / 300); if (step > 1) pts = pts.filter((_, i) => i % step === 0);
+          edPosCut({ polygon: pts.map((q2) => [q2.x, q2.y]) }, L0.pts[0]);
+        } else edPosCut({ x: L0.pts[0].x, y: L0.pts[0].y }, L0.pts[0]);
+        return;
+      }
+      if (ed.tool === 'player' && ed.ai && ed.ai.drag) {
+        const d = ed.ai.drag; ed.ai.drag = null;
+        if (e.type === 'pointercancel') { edDraw(); return; }
+        let box = null;
+        if (d.moved) {
+          const x = Math.min(d.a.x, d.b.x), y = Math.min(d.a.y, d.b.y), w = Math.abs(d.b.x - d.a.x), h = Math.abs(d.b.y - d.a.y);
+          if (w * edC.clientWidth > 10 && h * edC.clientHeight > 14) box = { x, y, w, h };
+        } else { const i = edAiHit(d.a); if (i >= 0) { const b = ed.ai.boxes[i]; box = { x: b.x, y: b.y, w: b.w, h: b.h }; } }
+        edDraw();
+        if (box) edAiTrack(box);
+        return;
+      }
       if (ed.shape) {
         const s = ed.shape; ed.shape = null;
         const W = edC.width, H = edC.height;
@@ -6193,11 +6471,140 @@
     };
     edC.addEventListener('pointerup', up);
     edC.addEventListener('pointercancel', up);
+    let wheelT = 0;
+    edC.addEventListener('wheel', (e) => {
+      if (!ed || (ed.tool !== 'select' && ed.tool !== 'pos')) return;
+      const p = edPosFromEvent(e), hit = edHit(p.x * edC.width, p.y * edC.height);
+      if (!hit || hit.kind !== 'stroke' || hit.obj.type !== 'pos') return;
+      e.preventDefault();
+      edBegin(); clearTimeout(wheelT); wheelT = setTimeout(edEnd, 500);
+      hit.obj.scale = clamp((hit.obj.scale || 1) * (e.deltaY < 0 ? 1.06 : 1 / 1.06), 0.4, 2.5);
+      if (!ed.sel || ed.sel.id !== hit.obj.id) edSelect('stroke', hit.obj.id); else edDraw();
+    }, { passive: false });
     edC.addEventListener('dblclick', (e) => {
       const p = edPosFromEvent(e);
       const hit = edHit(p.x * edC.width, p.y * edC.height);
       if (hit && hit.kind === 'gfx' && hit.obj.type === 'text') { edSelect('gfx', hit.obj.id); const ta = q('.ed-insp textarea'); if (ta) { ta.focus(); ta.select(); } }
     });
+  }
+  // ---------- ИИ в редакторе: «Позиция» и «Подсветка игрока» ----------
+  let edAiTimer = 0, edAiSeq = 0, edAiMsgT = 0;
+  function edAiStatus(text, kind, ms) {
+    if (!edEl) return;
+    const b = q('.ed-ai'); if (!b) return;
+    clearTimeout(edAiMsgT);
+    b.classList.remove('err', 'ok', 'prog', 'hint');
+    if (!text) { b.classList.remove('show'); return; }
+    q('.ed-ai-t').textContent = text;
+    if (kind) b.classList.add(kind);
+    b.classList.add('show');
+    if (ms) edAiMsgT = setTimeout(() => b.classList.remove('show'), ms);
+  }
+  function edAiProgress(m) {
+    if (m.type === 'stage') edAiStatus(m.stage === 'download' ? t('hl_prep_download').replace('{p}', m.percent || 0) : t(m.cpu ? 'hl_prep_cpu' : 'hl_prep_load'), 'prog');
+    else if (m.type === 'track') { const b = q('.ed-ai-bar b'); if (b) b.style.width = clamp(m.percent, 0, 100) + '%'; }
+  }
+  function edAiSchedule(delay) {
+    if (!ed || ed.tool !== 'player' || (ed.ai && ed.ai.busy)) return;
+    clearTimeout(edAiTimer); edAiSeq++;
+    if (ed.ai) { ed.ai.boxes = []; ed.ai.hover = -1; }
+    edAiTimer = setTimeout(edAiDetect, delay == null ? 280 : delay);
+  }
+  async function edAiDetect() {
+    if (!ed || ed.tool !== 'player' || ed.playing || !currentVideoPath) return;
+    const seq = ++edAiSeq, tm = eSrcAt(edNowPos());
+    ed.ai = { t: tm, boxes: [], hover: -1, info: {}, busy: false };
+    edAiStatus(t('hl_detecting'));
+    let r;
+    try { r = await window.api.aiDetect({ videoPath: currentVideoPath, t: tm, srcW: edV.videoWidth || video.videoWidth, srcH: edV.videoHeight || video.videoHeight }); }
+    catch (err) { r = { ok: false, error: String((err && err.message) || err) }; }
+    if (!ed || seq !== edAiSeq || ed.tool !== 'player' || !ed.ai) return;
+    if (!r || !r.ok) { edAiStatus((r && r.error) || te('Не удалось найти игроков', 'Could not find players'), 'err'); return; }
+    ed.ai.boxes = r.boxes || []; ed.ai.info = r.info || {};
+    edAiStatus(ed.ai.boxes.length ? te('Щёлкните по игроку — программа будет следить за ним. Или обведите игрока рамкой.', 'Click a player to follow him, or drag a box around him.')
+      : te('Игроки на кадре не найдены — обведите нужного игрока рамкой.', 'No players found — drag a box around the player.'), 'hint');
+    edDraw();
+  }
+  function edAiHit(p) {
+    if (!ed.ai) return -1;
+    let best = -1, bestA = 1e9;
+    (ed.ai.boxes || []).forEach((b, i) => { if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) { const a = b.w * b.h; if (a < bestA) { bestA = a; best = i; } } });
+    return best;
+  }
+  function edAiDraw(c, W, H, src) {
+    const ai = ed.ai, dpr = W / Math.max(1, edC.clientWidth);
+    if (!ed.playing && Math.abs(src - ai.t) < 0.05) {
+      (ai.boxes || []).forEach((b, i) => {
+        const on = i === ai.hover;
+        c.save();
+        c.lineWidth = (on ? 2.5 : 1.5) * dpr; c.setLineDash(on ? [] : [5 * dpr, 4 * dpr]);
+        c.strokeStyle = on ? '#E3343C' : 'rgba(255,255,255,0.75)';
+        if (on) { c.fillStyle = 'rgba(227,52,60,0.14)'; c.fillRect(b.x * W, b.y * H, b.w * W, b.h * H); }
+        c.strokeRect(b.x * W, b.y * H, b.w * W, b.h * H);
+        c.restore();
+      });
+    }
+    const d = ai.drag;
+    if (d && d.moved) {
+      c.save(); c.lineWidth = 2 * dpr; c.setLineDash([6 * dpr, 4 * dpr]); c.strokeStyle = '#E3343C';
+      c.strokeRect(Math.min(d.a.x, d.b.x) * W, Math.min(d.a.y, d.b.y) * H, Math.abs(d.b.x - d.a.x) * W, Math.abs(d.b.y - d.a.y) * H); c.restore();
+    }
+  }
+  async function edAiTrack(box) {
+    if (!ed || !ed.ai || ed.ai.busy) return;
+    const t0 = ed.ai.t;
+    let to = hlDur === 'clip' ? ed.end : t0 + hlDur;
+    if (ed.end - t0 >= 0.3) to = Math.min(to, ed.end); // не дальше конца клипа
+    if (to - t0 < 0.3) to = t0 + 3;
+    if (duration) to = Math.min(to, duration);
+    if (to - t0 < 0.3) { edAiStatus(t('hl_too_short'), 'err', 3000); return; }
+    ed.ai.busy = true; ed.ai.boxes = []; ed.ai.hover = -1; edDraw();
+    edAiStatus(t('hl_tracking') + ' ' + te('(Esc — отменить)', '(Esc — cancel)'), 'prog');
+    const bar = q('.ed-ai-bar b'); if (bar) bar.style.width = '0%';
+    let r;
+    try { r = await window.api.aiTrack({ videoPath: currentVideoPath, srcW: edV.videoWidth || video.videoWidth, srcH: edV.videoHeight || video.videoHeight, t0, players: [{ id: 'ed', anchor: box }], from: t0, to, trackW: (ed.ai.info && ed.ai.info.trackW) || 0 }); }
+    catch (err) { r = { ok: false, error: String((err && err.message) || err) }; }
+    if (!ed) return;
+    if (ed.ai) ed.ai.busy = false;
+    const res = r && r.ok && Array.isArray(r.results) ? r.results.find((x) => x.id === 'ed') : null;
+    const samples = (res && res.samples) || [];
+    if (!samples.length) {
+      edAiStatus(r && r.cancelled ? t('hl_cancelled') : ((r && r.error) || te('Не получилось проследить за игроком — попробуйте обвести его рамкой поточнее', 'Could not follow the player — try a tighter box')), r && r.cancelled ? '' : 'err', 5000);
+      edAiSchedule(); return;
+    }
+    const lastT = samples[samples.length - 1].t, lost = !!(res.ends && res.ends.after);
+    const h = { id: 'hl-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), label: '', style: hlStyle, color: ed.color, logo: null, from: samples[0].t, to: lastT, reqTo: to, lost, samples };
+    const p = Object.create(h); p.from = h.from; p.to = h.to;
+    edPush();
+    ed.hls.push({ h, p, id: h.id });
+    ed.tool = 'select'; ed.ai = null; edUpdateRail();
+    edSelect('hl', h.id);
+    edRenderTimeline();
+    edAiStatus(lost ? te('Игрок потерян в ', 'Player lost at ') + fmt(lastT) + te(' — подсветка до этого момента', ' — highlighted until then') : te('Игрок подсвечен. Подпись, цвет и стиль — справа', 'Player highlighted. Label, colour and style — on the right'), lost ? 'err' : 'ok', 4000);
+    const nm = q('.ed-insp [data-ei="hlname"]'); if (nm) setTimeout(() => nm.focus(), 30);
+  }
+  async function edPosCut(req, at) {
+    if (!ed || (ed.ai && ed.ai.busy)) return;
+    if (ed.playing) edStop();
+    const pos = edNowPos(), tm = eSrcAt(pos);
+    ed.ai = Object.assign(ed.ai || {}, { busy: true });
+    edAiStatus(t(req.polygon ? 'pos_cutting' : 'pos_finding'), 'prog');
+    window.api.onPosProgress((d) => { if (ed && ed.ai && ed.ai.busy) edAiStatus(d && d.stage === 'download' ? t('pos_download').replace('{p}', d.percent || 0) : t('pos_finding'), 'prog'); });
+    let r;
+    try { r = await window.api.posCut(Object.assign({ videoPath: currentVideoPath, t: tm, fps: videoFps || 0, srcW: edV.videoWidth || video.videoWidth, srcH: edV.videoHeight || video.videoHeight }, req)); }
+    catch (err) { r = { ok: false, error: String((err && err.message) || err) }; }
+    if (!ed) return;
+    if (ed.ai) ed.ai.busy = false;
+    if (!r || !r.ok) { edAiStatus(((r && r.error) || t('pos_fail')) + (req.polygon ? '' : ' ' + t('pos_try_lasso')), 'err', 5000); return; }
+    const st = posStrokeFromCut(r, req, ed.color, ed.width);
+    st.id = edUid(); st.hold = 0;
+    edPush();
+    edDefaultSpan(st, 'stroke');
+    ed.strokes.push(st);
+    posImg(st);
+    edSelect('stroke', st.id);
+    edRenderTimeline();
+    edAiStatus(t('pos_drag'), 'ok', 3500);
   }
   function edAddText(p) {
     edPush();
@@ -6774,7 +7181,9 @@
     } else if (k === 'hl') {
       h += '<div class="ei-h">' + ico('player') + '<span>' + esc(te('Подсветка игрока', 'Player highlight')) + '</span></div>';
       const sp = eSpan('hl', o);
-      h += '<div class="ei-f"><span class="ei-cap">' + esc(te('Игрок', 'Player')) + '</span><div class="ei-times"><span><b class="ei-hl-name"></b></span></div></div>';
+      h += '<div class="ei-f"><span class="ei-cap">' + esc(te('Подпись', 'Label')) + '</span><input class="ei-in" data-ei="hlname" maxlength="24" spellcheck="false" placeholder="' + esc(te('Имя или номер игрока', 'Player name or number')) + '"></div>';
+      h += '<div class="ei-f"><span class="ei-cap">' + esc(te('Стиль', 'Style')) + '</span><div class="seg small">' + [['ring', te('Кольцо', 'Ring')], ['contour', te('Контур', 'Outline')], ['spot', te('Прожектор', 'Spotlight')]].map(([v, n]) => '<button type="button" data-ei="hlstyle" data-v="' + v + '" class="' + ((o.p.style || 'ring') === v ? 'active' : '') + '">' + esc(n) + '</button>').join('') + '</div></div>';
+      h += '<div class="ei-f"><span class="ei-cap">' + esc(te('Цвет', 'Colour')) + '</span><div class="ei-sw">' + PALETTE.map((c) => '<button class="swatch' + (String(o.p.color).toLowerCase() === c.toLowerCase() ? ' selected' : '') + '" data-col="' + c + '" style="background:' + c + '"></button>').join('') + '</div></div>';
       h += '<div class="ei-f"><span class="ei-cap">' + esc(te('Время показа', 'Shown')) + '</span><div class="ei-times"><span>' + esc(te('с', 'from')) + ' <b>' + fmtE(sp.a - r.s) + '</b></span><span>' + esc(te('до', 'to')) + ' <b>' + fmtE(sp.e - r.s) + '</b></span></div>' +
         '<div class="ei-note">' + esc(te('Тяните края полоски на таймлайне, чтобы подсветка появлялась позже или исчезала раньше. Дольше, чем игрок отслежен, сделать нельзя.', 'Drag the bar edges on the timeline to show it later or hide it earlier (within the tracked range).')) + '</div></div>';
       h += '<button class="tbtn ei-del" data-ei="del">' + ico('trash') + '<span>' + esc(te('Удалить подсветку', 'Delete highlight')) + '</span></button>';
@@ -6787,7 +7196,7 @@
     if (k === 'pause') { set('[data-ei="pdur"]', Math.min(20, o.dur)); set('[data-ei="pdur-n"]', String(o.dur.toFixed(1)).replace('.', ',')); }
     if (k === 'gfx' && o.type === 'text') { set('[data-ei="text"]', o.text || ''); set('[data-ei="tsize"]', o.size || 0.045); }
     if (k === 'gfx' && o.type === 'image') { set('[data-ei="isize"]', o.w); set('[data-ei="iop"]', o.opacity != null ? o.opacity : 1); }
-    if (k === 'hl') { const nm = box.querySelector('.ei-hl-name'); if (nm) nm.textContent = o.p.label || te('без подписи', 'no label'); }
+    if (k === 'hl') set('[data-ei="hlname"]', o.p.label || '');
   }
   function edSlowTexts(o, box) {
     const v = Math.round((1 - o.speed) * 100);
@@ -6853,6 +7262,7 @@
       if (k === 'replay' && /^(speed|rep-from|rep-to|rep-show|at-after|at-end|at-now)$/.test(a)) { edReplayAction(o, a, b); return; }
       if (a === 'w') { edPush(); o.width = parseInt(b.dataset.w, 10); ed.width = o.width; edUpdateRail(); }
       else if (a === 'style') { edPush(); o.style = b.dataset.v; }
+      else if (a === 'hlstyle' && k === 'hl') { edPush(); o.p.style = b.dataset.v; edRenderInspector(); }
       else if (a === 'from-now') {
         const sp = eSpan(k, o);
         if (!sp.open && ed.ph >= sp.e - 0.05) return;
@@ -6888,6 +7298,7 @@
       if (a === 'pdur') { edSetPauseDur(o, parseFloat(el.value)); const n = q('[data-ei="pdur-n"]'); if (n) n.value = o.dur.toFixed(1).replace('.', ','); }
       else if (a === 'pdur-n') { const v = parseFloat(String(el.value).replace(',', '.')); if (v > 0) { edSetPauseDur(o, v); const rg = q('[data-ei="pdur"]'); if (rg) rg.value = Math.min(20, o.dur); } }
       else if (a === 'text') o.text = el.value;
+      else if (a === 'hlname' && ed.sel.kind === 'hl') o.p.label = el.value.trim();
       else if (a === 'tsize') {
         // размер меняется от центра надписи
         const W = edC.width, H = edC.height, b0 = gfxLayout(edCtx, o, W, H);
@@ -6921,6 +7332,8 @@
       e.preventDefault();
       if (typing) { e.target.blur(); return; }
       if (ed.shape) { ed.shape = null; edDraw(); return; }
+      if (ed.ai && ed.ai.busy) { window.api.aiCancel(); return; }
+      if (ed.lasso) { ed.lasso = null; edDraw(); return; }
       if (ed.sel) { edSelect(null); return; }
       if (ed.tool !== 'select') { edSetTool('select'); return; }
       closeClipEditor(false); return;
@@ -6955,7 +7368,7 @@
     if (e.code === 'KeyG') { e.preventDefault(); edAddReplay(); return; }
     if (e.code === 'KeyH') { e.preventDefault(); edToggleSlow(); return; }
     // инструменты (A, D, Q, E по умолчанию заняты перемоткой — стрелка W, эллипс C)
-    const tl = { KeyV: 'select', KeyB: 'pen', KeyL: 'line', KeyW: 'arrow', KeyP: 'darrow', KeyC: 'ellipse', KeyR: 'rect', KeyS: 'spot', KeyO: 'ring', KeyT: 'text', KeyI: 'image' }[e.code];
+    const tl = { KeyV: 'select', KeyB: 'pen', KeyL: 'line', KeyW: 'arrow', KeyP: 'darrow', KeyC: 'ellipse', KeyR: 'rect', KeyS: 'spot', KeyO: 'ring', KeyU: 'pos', KeyK: 'player', KeyT: 'text', KeyI: 'image' }[e.code];
     if (tl) { e.preventDefault(); edSetTool(tl); }
   }, true);
 
