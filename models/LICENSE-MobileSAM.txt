@@ -1,0 +1,6 @@
+Нейросеть для «Позиции» (вырезать игрока щелчком) — MobileSAM.
+
+Файлы mobile_sam_image_encoder.onnx и sam_mask_decoder_single.onnx — выгрузка в формат ONNX
+из репозитория huggingface.co/Acly/MobileSAM (лицензия MIT).
+MobileSAM: Chaoning Zhang и соавт., github.com/ChaoningZhang/MobileSAM — лицензия Apache-2.0.
+Segment Anything (декодер маски): Meta Platforms, Inc., github.com/facebookresearch/segment-anything — лицензия Apache-2.0.

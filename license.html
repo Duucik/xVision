@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:">
+<title>xVision — ключ</title>
+<style>
+  @font-face { font-family: 'Inter'; src: url('fonts/Inter-Regular.woff') format('woff'); font-weight: 400; }
+  @font-face { font-family: 'Inter'; src: url('fonts/Inter-SemiBold.woff') format('woff'); font-weight: 600; }
+  @font-face { font-family: 'Inter'; src: url('fonts/Inter-Bold.woff') format('woff'); font-weight: 700; }
+  :root {
+    --bg: #0F0F11; --panel: rgba(28,28,32,0.86); --border: rgba(255,255,255,0.09); --border2: rgba(255,255,255,0.16);
+    --text: #EDEDF0; --muted: #A2A2AA; --faint: #6E6E76;
+    --accent: #E3343C; --accent-ink: #FFFFFF; --accent-soft: rgba(227,52,60,0.16);
+    --ok: #3FB97A; --warn: #E8B33B; --bad: #E5484D;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; }
+  .drag { height: 44px; flex-shrink: 0; -webkit-app-region: drag; display: flex; align-items: center; padding-left: 16px; gap: 10px; border-bottom: 1px solid var(--border); background: #0E0E10; }
+  .drag img { height: 20px; }
+  .wrap { flex: 1; display: grid; place-items: center; padding: 24px; overflow: auto;
+    background: radial-gradient(1200px 600px at 70% -10%, var(--accent-soft), transparent 60%); }
+  .card { width: min(560px, 100%); background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 30px 32px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+  h1 { margin: 8px 0 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  p { margin: 0 0 14px; color: var(--muted); line-height: 1.5; }
+  .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); margin: 18px 0 8px; }
+  .code { display: flex; align-items: center; gap: 10px; }
+  .code b { flex: 1; font-family: 'Consolas', 'Cascadia Mono', monospace; font-size: 24px; letter-spacing: 0.06em; padding: 12px 16px; border-radius: 12px; background: rgba(0,0,0,0.35); border: 1px solid var(--border2); user-select: all; }
+  textarea { width: 100%; height: 96px; resize: vertical; padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,0.35); border: 1px solid var(--border2); color: var(--text);
+    font-family: 'Consolas', 'Cascadia Mono', monospace; font-size: 12.5px; line-height: 1.45; word-break: break-all; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .btn { height: 40px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--border2); background: rgba(255,255,255,0.05); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: rgba(255,255,255,0.1); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.12); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .row { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+  .row .sp { flex: 1; }
+  .msg { margin-top: 14px; padding: 11px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45; display: none; }
+  .msg.show { display: block; }
+  .msg.bad { background: rgba(229,72,77,0.12); border: 1px solid rgba(229,72,77,0.45); color: #FFC9CB; }
+  .msg.ok { background: rgba(63,185,122,0.12); border: 1px solid rgba(63,185,122,0.45); color: #C6F2D9; }
+  .cur { margin: 4px 0 6px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); font-size: 13px; line-height: 1.6; display: none; }
+  .cur.show { display: block; }
+  .cur b { color: var(--text); }
+  .foot { margin-top: 22px; font-size: 11.5px; color: var(--faint); display: flex; justify-content: space-between; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<div class="drag"><img src="logos/xvision-dark.png" alt="xVision" onerror="this.style.display='none'"></div>
+<div class="wrap">
+  <div class="card">
+    <div class="eyebrow" id="eyebrow">Доступ к программе</div>
+    <h1 id="title">Нужен ключ</h1>
+    <p id="lead">xVision работает по ключу. Отправьте код этого компьютера тому, кто выдаёт ключи, — он пришлёт ключ. Вставьте его ниже и нажмите «Активировать».</p>
+    <div class="cur" id="cur"></div>
+    <div id="codeBlock">
+      <div class="lbl">Код этого компьютера</div>
+      <div class="code"><b id="code">…</b><button class="btn" id="copyBtn">Скопировать</button></div>
+    </div>
+    <div id="keyBlock">
+      <div class="lbl">Ключ</div>
+      <textarea id="key" spellcheck="false" placeholder="XV1.…"></textarea>
+      <div class="row"><button class="btn hide" id="backBtn">Вернуться в программу</button><span class="sp"></span><button class="btn primary" id="goBtn">Активировать</button></div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="foot"><span id="prod">xVision</span></div>
+  </div>
+</div>
+<script>
+// весь код — внутри функции: window.api задан программой «намертво», и объявление const api на верхнем
+// уровне страницы ломало весь скрипт (кнопки не работали, код компьютера не показывался)
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const api = window.api;
+  const TEXT = {
+    none: ['Доступ к программе', 'Нужен ключ', 'xVision работает по ключу. Отправьте код этого компьютера тому, кто выдаёт ключи, — он пришлёт ключ. Вставьте его ниже и нажмите «Активировать».'],
+    expired: ['Ключ закончился', 'Нужен новый ключ', 'Срок вашего ключа закончился. Ваши проекты, клипы и тренировки на месте — после нового ключа всё откроется как было. Отправьте код компьютера тому, кто выдаёт ключи.'],
+    machine: ['Другой компьютер', 'Ключ не от этого компьютера', 'Ключ выписан для другого компьютера (или Windows переустанавливали). Отправьте код этого компьютера тому, кто выдаёт ключи.'],
+    product: ['Другая программа', 'Ключ не подходит', 'Этот ключ выписан для другой версии программы. Попросите ключ для этой.'],
+    bad: ['Доступ к программе', 'Ключ не подходит', 'Сохранённый ключ повреждён или изменён. Вставьте ключ заново.'],
+    clock: ['Дата на компьютере', 'Проверьте дату и время', 'Дата на компьютере переведена назад. Поставьте правильные дату и время Windows и перезапустите программу — или вставьте новый ключ.'],
+    nobuild: ['Сборка без защиты', 'Программа собрана без ключа защиты', 'Эту сборку нельзя запускать: в ней нет открытого ключа. Соберите программу заново после того, как лаунчер запишет ключ в папку программы.'],
+    ok: ['Доступ к программе', 'Ключ xVision', 'Ключ действует. Здесь можно вставить другой ключ — например, продлённый.'],
+  };
+  let info = null;
+  function show(kind, text) { const m = $('msg'); m.className = 'msg show ' + kind; m.textContent = text; }
+  async function load() {
+    info = await api.licenseInfo();
+    const st = info.ok ? 'ok' : (TEXT[info.status] ? info.status : 'none');
+    const t = TEXT[st];
+    $('eyebrow').textContent = t[0]; $('title').textContent = t[1]; $('lead').textContent = t[2];
+    $('code').textContent = info.machine || '—';
+    $('prod').textContent = info.productName || 'xVision';
+    if (info.ok && info.payload) {
+      const p = info.payload;
+      $('cur').innerHTML = 'Ключ выдан: <b></b><br>Действует до: <b></b>';
+      $('cur').querySelectorAll('b')[0].textContent = p.n || '—';
+      $('cur').querySelectorAll('b')[1].textContent = p.k === 'creator' ? 'бессрочно (Создатель)' : info.expires;
+      $('cur').classList.add('show');
+      $('backBtn').classList.remove('hide');
+    }
+    if (info.status === 'nobuild') { $('codeBlock').classList.add('hide'); $('keyBlock').classList.add('hide'); }
+    if (!info.ok && info.error && info.status !== 'none') show('bad', info.error);
+  }
+  $('copyBtn').addEventListener('click', async () => {
+    await api.clipboardWrite($('code').textContent);
+    $('copyBtn').textContent = 'Скопировано'; setTimeout(() => { $('copyBtn').textContent = 'Скопировать'; }, 1500);
+  });
+  $('goBtn').addEventListener('click', async () => {
+    const key = $('key').value.trim();
+    if (!key) { show('bad', 'Вставьте ключ.'); return; }
+    if (/^XVCREATOR1\./.test(key)) { show('bad', 'Это ключ Создателя — он вставляется в xVision Launcher, а не сюда. Чтобы включить xVision на своём компьютере: в лаунчере Настройки → «Включить xVision здесь» (или «Скопировать ключ Создателя для xVision» и вставить сюда).'); return; }
+    $('goBtn').disabled = true;
+    let r; try { r = await api.licenseActivate(key); } catch (e) { r = { ok: false, error: String(e.message || e) }; }
+    $('goBtn').disabled = false;
+    if (!r.ok) { show('bad', r.error || 'Ключ не подходит.'); return; }
+    const p = r.payload || {};
+    show('ok', 'Ключ принят' + (p.n ? ': ' + p.n : '') + '. ' + (p.k === 'creator' ? 'Бессрочный ключ Создателя.' : 'Действует до ' + r.expires + '.') + ' Открываю программу…');
+    setTimeout(() => api.licenseContinue(), 1200);
+  });
+  $('key').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('goBtn').click(); });
+  $('backBtn').addEventListener('click', () => api.licenseContinue());
+  load();
+})();
+</script>
+</body>
+</html>

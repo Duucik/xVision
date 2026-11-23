@@ -1,0 +1,2 @@
+YOLOX-S (yolox_s.onnx) — Megvii-BaseDetection/YOLOX, Apache License 2.0.
+https://github.com/Megvii-BaseDetection/YOLOX

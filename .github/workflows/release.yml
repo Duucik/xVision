@@ -1,0 +1,72 @@
+# Сборка и выпуск xVision ITAA.
+# Запускается сама, когда в ветку main попадает новая версия (поле "version" в package.json).
+# Если релиз с такой версией уже есть — ничего не делает. Установленные программы скачают новую версию сами.
+name: Сборка и выпуск
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Какая версия
+        id: v
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" > /dev/null 2>&1; then
+            echo "Релиз v$V уже есть — собирать нечего."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=0" >> "$GITHUB_OUTPUT"
+          fi
+          if [ ! -s license/public.key ]; then echo "::error::Нет license/public.key — запишите его лаунчером"; exit 1; fi
+
+      - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip == '0'
+        with:
+          node-version: 20
+
+      - name: Установка модулей
+        if: steps.v.outputs.skip == '0'
+        run: npm install --no-audit --no-fund
+
+      - name: Подготовка (загрузчик видео, нейросети, библиотеки)
+        if: steps.v.outputs.skip == '0'
+        run: node prepare-build.js
+
+      - name: Сборка установщика
+        if: steps.v.outputs.skip == '0'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Выпуск на GitHub
+        if: steps.v.outputs.skip == '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.v.outputs.version }}"
+          node .github/release-notes.js > notes.md
+          ls -la dist
+          gh release create "v$V" \
+            "dist/xVision-ITAA-Setup-$V.exe" \
+            "dist/xVision-ITAA-Setup-$V.exe.blockmap" \
+            "dist/latest.yml" \
+            --title "xVision ITAA $V" --notes-file notes.md --latest

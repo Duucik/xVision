@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>xVision · Тренерская</title>
+<link rel="stylesheet" href="coach-print.css" />
+<style>
+  @font-face { font-family: "Inter"; font-weight: 400; font-display: block; src: url("fonts/Inter-Regular.woff") format("woff"); }
+  @font-face { font-family: "Inter"; font-weight: 500; font-display: block; src: url("fonts/Inter-Medium.woff") format("woff"); }
+  @font-face { font-family: "Inter"; font-weight: 600; font-display: block; src: url("fonts/Inter-SemiBold.woff") format("woff"); }
+  @font-face { font-family: "Inter"; font-weight: 700; font-display: block; src: url("fonts/Inter-Bold.woff") format("woff"); }
+  @font-face { font-family: "Inter Display"; font-weight: 800; font-display: block; src: url("fonts/InterDisplay-ExtraBold.woff") format("woff"); }
+  :root {
+    --bg: #131315; --surface: #19191C; --panel: #1E1E22; --panel2: #26262B; --panel3: #2E2E34;
+    --border: #2D2D33; --border2: #3C3C44;
+    --text: #ECECEA; --muted: #8D8D95; --faint: #5E5E66;
+    --accent: #E3343C; --accent-ink: #FFFFFF; --accent-soft: rgba(227,52,60,0.14); --accent-line: rgba(227,52,60,0.55);
+    --chrome: #C9CDD3; --danger: #D9484E; --ok: #5FBF7F;
+    --title-h: 44px;
+    --font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    --font-brand: "Inter Display", "Inter", "Segoe UI", system-ui, sans-serif;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 13px; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  button { cursor: pointer; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--panel3); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .ic { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; }
+
+  /* шапка окна */
+  .titlebar { height: var(--title-h); flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 150px 0 14px;
+    background: #0E0E10; border-bottom: 1px solid var(--border); -webkit-app-region: drag; }
+  .titlebar button { -webkit-app-region: no-drag; }
+  html.embedded .titlebar { display: none; }
+  .brand { display: flex; align-items: center; gap: 10px; user-select: none; }
+  .brand img { height: 24px; }
+  .brand-title { font-family: var(--font-brand); font-weight: 800; font-size: 19px; letter-spacing: -0.01em; line-height: 1; }
+  .brand-title .x { color: var(--accent); }
+  .brand-title .v { background: linear-gradient(135deg, #fff 0%, #D4D7DC 45%, #9A9EA6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .brand-sub { padding-left: 10px; margin-left: 2px; border-left: 1px solid var(--border2); font-weight: 700; font-size: 13px; color: #FF8F94; letter-spacing: 0.02em; }
+  .tb-sp { flex: 1; }
+  .save-st { color: var(--muted); font-size: 11.5px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 7px;
+    background: var(--panel); border: 1px solid var(--border2); font-weight: 600; white-space: nowrap; transition: transform 120ms var(--ease-out), background 120ms; }
+  .btn:hover { border-color: var(--chrome); background: var(--panel2); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ghost { background: transparent; }
+  .btn.sm { height: 27px; padding: 0 10px; font-size: 12px; border-radius: 7px; }
+  .btn.icon { width: 30px; padding: 0; }
+  .btn.sm.icon { width: 27px; }
+  .btn.danger { color: #F08A8E; }
+  .btn.danger:hover { border-color: var(--danger); background: rgba(217,72,78,0.12); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .views { flex: 1; min-height: 0; position: relative; }
+  .view { position: absolute; inset: 0; overflow-y: auto; display: none; }
+  .view.show { display: block; }
+
+  /* ---------- библиотека ---------- */
+  .lib { max-width: 1560px; margin: 0 auto; padding: 26px 32px 90px; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.04em; }
+  .kicker b { background: var(--accent); color: var(--accent-ink); padding: 2px 7px; border-radius: 5px; font-size: 10.5px; letter-spacing: 0.06em; }
+  .h1 { font-family: var(--font-brand); font-weight: 800; font-size: 38px; letter-spacing: -0.01em; text-transform: uppercase; margin: 10px 0 6px; line-height: 1.05; }
+  #trTitle { text-transform: none; }
+  .lead { color: var(--muted); font-size: 14px; max-width: 640px; line-height: 1.5; margin: 0 0 18px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 22px; margin: 28px 0 14px; border-bottom: 1px solid var(--border); }
+  .tab { background: none; border: none; padding: 0 0 10px; font-family: var(--font-brand); font-weight: 800; font-size: 22px; color: var(--faint); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.on { color: var(--text); border-bottom-color: var(--accent); }
+  .tab .cnt { font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; vertical-align: 3px; }
+  .filters { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .inp, .sel, .ta { height: 34px; padding: 0 11px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border2); }
+  .inp:focus, .sel:focus, .ta:focus { outline: none; border-color: var(--accent); }
+  .ta { height: auto; min-height: 90px; padding: 9px 11px; resize: vertical; line-height: 1.45; width: 100%; }
+  .search { position: relative; flex: 1; max-width: 320px; }
+  .search .ic { position: absolute; left: 10px; top: 9px; color: var(--faint); }
+  .search .inp { width: 100%; padding-left: 32px; }
+  .empty { padding: 38px 20px; text-align: center; color: var(--muted); border: 1px dashed var(--border2); border-radius: 12px; line-height: 1.6; }
+  .empty b { color: var(--text); }
+
+  .tr-row { display: grid; grid-template-columns: 26px 64px 1fr auto; gap: 14px; align-items: center; padding: 12px 14px; margin-bottom: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; transition: border-color 120ms; }
+  .tr-row:hover { border-color: var(--border2); }
+  .chk { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+  .date-blk { text-align: center; line-height: 1.1; }
+  .date-blk .d { font-family: var(--font-brand); font-weight: 800; font-size: 22px; }
+  .date-blk .m { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .date-blk .w { font-size: 10.5px; color: var(--faint); }
+  .tr-name { font-weight: 700; font-size: 15px; cursor: pointer; }
+  .tr-name:hover { color: #FF8F94; }
+  .tr-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .thumbs { display: flex; gap: 6px; margin-top: 8px; }
+  .thumbs svg { width: 96px; height: 44px; background: #fff; border-radius: 4px; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); vertical-align: 2px; margin-left: 6px; letter-spacing: 0.03em; }
+
+  .ex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+  .ex-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 120ms, transform 160ms var(--ease-out); }
+  .ex-card:hover { border-color: var(--border2); }
+  .ex-card .pic { position: relative; background: #fff; cursor: pointer; aspect-ratio: 2.05; display: flex; }
+  .ex-card .pic svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ex-card .pic .chk { position: absolute; left: 9px; top: 9px; }
+  .ex-card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .ex-card .nm { font-weight: 700; font-size: 13.5px; cursor: pointer; }
+  .ex-card .mt { color: var(--muted); font-size: 11.5px; }
+  .ex-card .acts { display: flex; gap: 6px; margin-top: 8px; }
+
+  .selbar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 16px; border-radius: 12px; background: #26262B; border: 1px solid var(--border2);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.5); transition: opacity 180ms var(--ease-out), transform 220ms var(--ease-out); z-index: 20; }
+  .selbar.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+  .selbar .t { font-weight: 600; margin-right: 6px; }
+
+  /* ---------- общие формы ---------- */
+  .page { max-width: 1400px; margin: 0 auto; padding: 18px 26px 60px; }
+  .page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .page-head .h1 { font-size: 30px; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fgrid { display: grid; gap: 10px 12px; margin-bottom: 14px; }
+  .fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .cap { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+  .fld .inp, .fld .sel { width: 100%; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+
+  /* ---------- редактор упражнения: рабочее место во весь экран ---------- */
+  #vEx { overflow: hidden; }
+  .ws { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .ws-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .title-inp { flex: 1; min-width: 160px; height: 38px; padding: 0 10px; border-radius: 8px; border: 1px solid transparent; background: transparent;
+    font-family: var(--font-brand); font-weight: 800; font-size: 22px; letter-spacing: -0.01em; } /* название пишется так, как его набрали */
+  .title-inp:hover { border-color: var(--border2); }
+  .title-inp:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+  .title-inp::placeholder { color: var(--faint); }
+  .ws-head .sel { width: 170px; }
+  .ws-acts { display: inline-flex; gap: 4px; padding: 0 6px; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .ws-head .min-fld { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .ws-head .min-fld .inp { width: 64px; text-align: center; }
+  .ws-body { flex: 1; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) 330px; grid-template-rows: minmax(0, 1fr); }
+  .rail { overflow-y: auto; padding: 10px 8px 16px; border-right: 1px solid var(--border); background: #161618; display: flex; flex-direction: column; gap: 4px; }
+  .rail-cap { font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); font-weight: 700; padding: 8px 4px 3px; }
+  .rail-grid { display: grid; grid-template-columns: repeat(3, 46px); gap: 4px; }
+  .rail-grid.sw4 { grid-template-columns: repeat(4, 24px); gap: 9px; padding: 2px 6px 4px; }
+  .tool { width: 46px; height: 42px; border-radius: 9px; border: 1px solid transparent; background: none; display: grid; place-items: center; color: var(--text); padding: 0; position: relative; }
+  .tool:hover { background: var(--panel2); }
+  .tool.on { background: var(--accent-soft); border-color: var(--accent-line); }
+  .tool svg.mini { width: 36px; height: 24px; }
+  .tool svg.mini.sq, .fly button svg.mini.sq { width: 30px; height: 30px; }
+  .tool .ic { width: 20px; height: 20px; }
+  .tool.has-var::after { content: ''; position: absolute; right: 4px; bottom: 4px; border: 3px solid transparent; border-right-color: var(--muted); border-bottom-color: var(--muted); }
+  .sw { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; padding: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
+  .sw.on { border-color: #fff; }
+  .wrow { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 2px; }
+  .wrow .tool { width: 34px; height: 32px; }
+  .wval { min-width: 18px; text-align: center; font-weight: 700; }
+  .stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 14px 16px 10px; background: #0E0E10; }
+  .rink-wrap { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .rink-wrap svg { display: block; user-select: none; touch-action: none; filter: drop-shadow(0 10px 28px rgba(0,0,0,0.45)); }
+  .rink-wrap svg .obj { cursor: pointer; }
+  .rink-wrap.draw svg, .rink-wrap.draw svg .obj { cursor: crosshair; }
+  .rink-wrap.text svg, .rink-wrap.text svg .obj { cursor: text; }
+  .under { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-shrink: 0; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border2); border-radius: 9px; padding: 3px; gap: 2px; }
+  .seg button { white-space: nowrap; height: 28px; padding: 0 12px; border-radius: 7px; border: none; background: none; color: var(--muted); font-weight: 600; font-size: 12px; }
+  .seg button.on { background: var(--panel3); color: var(--text); }
+  .hint { color: var(--faint); font-size: 12px; }
+  .side { overflow-y: auto; padding: 14px; border-left: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 12px; }
+  .props { display: none; flex-direction: column; gap: 10px; background: var(--panel); }
+  .props.show { display: flex; }
+  .props .ph { display: flex; align-items: center; justify-content: space-between; font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { height: 26px; min-width: 34px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--border2); background: var(--surface); font-weight: 700; font-size: 12px; }
+  .chip:hover { border-color: var(--chrome); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .chip sub { font-size: 0.72em; vertical-align: -0.1em; margin-left: 1px; opacity: 0.85; }
+  .txt-ed { position: absolute; z-index: 5; min-width: 120px; padding: 4px 6px; border: 2px solid var(--accent); border-radius: 6px; background: #fff; color: #111;
+    font-weight: 700; line-height: 1.2; resize: none; outline: none; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+  .kbd-help { color: var(--faint); font-size: 11.5px; line-height: 1.7; }
+  .kbd-help kbd { display: inline-block; min-width: 20px; padding: 0 5px; border-radius: 4px; background: var(--panel); border: 1px solid var(--border2); color: var(--chrome); font: 600 10.5px var(--font); text-align: center; margin-right: 4px; }
+  /* всплывающий выбор вариантов (игроки с номерами, инвентарь) */
+  .fly { position: fixed; z-index: 40; display: none; flex-direction: column; gap: 2px; padding: 6px; border-radius: 12px; background: #26262B; border: 1px solid var(--border2);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.55); max-height: 80vh; overflow-y: auto; }
+  .fly.show { display: flex; }
+  .fly-cap { font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); font-weight: 700; padding: 4px 8px 2px; }
+  .fly button { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px 0 6px; border-radius: 8px; border: 1px solid transparent; background: none; text-align: left; white-space: nowrap; }
+  .fly button:hover { background: var(--panel3); }
+  .fly button.on { background: var(--accent-soft); border-color: var(--accent-line); }
+  .fly button svg.mini { width: 36px; height: 26px; flex-shrink: 0; }
+  .fly .fl-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 3px; padding: 2px; }
+  .fly .fl-grid button { width: 44px; height: 40px; padding: 0; justify-content: center; }
+
+  /* ---------- тренировка ---------- */
+  .items { display: flex; flex-direction: column; gap: 8px; }
+  .it { display: grid; grid-template-columns: 28px 190px 1fr auto; gap: 12px; align-items: center; padding: 10px; border-radius: 11px; background: var(--panel); border: 1px solid var(--border); }
+  .it .num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; display: grid; place-items: center; }
+  .it .pic { background: #fff; border-radius: 6px; height: 88px; display: flex; cursor: pointer; }
+  .it .pic svg { width: 100%; height: 100%; }
+  .it .nm { font-weight: 700; font-size: 14px; }
+  .it .mt { color: var(--muted); font-size: 11.5px; margin: 2px 0 4px; }
+  .it .ds { color: #B9B9BE; font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+  .it .ctl { display: flex; align-items: center; gap: 4px; }
+  .it .min { width: 54px; height: 30px; text-align: center; padding: 0 4px; }
+  .total { font-family: var(--font-brand); font-weight: 800; font-size: 22px; margin-left: 8px; }
+
+  /* ---------- модальные окна ---------- */
+  .modal-bg { position: fixed; inset: 0; background: rgba(6,6,8,0.6); display: none; align-items: center; justify-content: center; z-index: 50; padding: 30px; }
+  .modal-bg.show { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; width: 100%; max-width: 460px; max-height: 100%; display: flex; flex-direction: column; box-shadow: 0 24px 70px rgba(0,0,0,0.55); }
+  .modal.wide { max-width: 1040px; height: 100%; }
+  .modal-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px 10px; }
+  .modal-h h3 { margin: 0; font-size: 17px; flex: 1; }
+  .modal-b { padding: 4px 18px 16px; overflow-y: auto; }
+  .modal-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--border); }
+  .modal-text { color: var(--muted); line-height: 1.5; margin: 0 0 6px; }
+  .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .pick { background: var(--panel); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; display: flex; flex-direction: column; }
+  .pick.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .pick .pic { background: #fff; aspect-ratio: 2.05; display: flex; position: relative; }
+  .pick .pic svg { position: absolute; inset: 0; }
+  .pick .pic svg { width: 100%; height: 100%; }
+  .pick .body { padding: 9px 11px 11px; display: flex; flex-direction: column; gap: 3px; }
+  .pick .nm { font-weight: 700; }
+  .pick .mt { color: var(--muted); font-size: 11.5px; }
+  /* окно «Импорт упражнений» */
+  .imp-opts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .restore-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--accent); background: rgba(255,255,255,0.04); font-size: 13.5px; line-height: 1.4; }
+  .restore-bar > .ic { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
+  .restore-bar > span { flex: 1; min-width: 0; }
+  .imp-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 18px; border-radius: 14px; border: 1px solid var(--border2); background: var(--panel); cursor: pointer; color: inherit; font: inherit; }
+  .imp-opt:hover, .imp-opt:focus-visible { border-color: var(--accent); outline: none; }
+  .imp-opt .ic { width: 26px; height: 26px; color: var(--accent); }
+  .imp-opt b { font-size: 15px; }
+  .imp-opt span { color: var(--muted); line-height: 1.45; font-size: 12.5px; }
+  #impGrid .pick { cursor: pointer; }
+  #impGrid .pick:not(.on) { opacity: 0.55; }
+  #impGrid .pick .inp { height: 28px; font-weight: 700; }
+  .imp-dup { align-self: flex-start; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border2); color: var(--muted); }
+  @media (max-width: 720px) { .imp-opts { grid-template-columns: 1fr; } }
+  .logos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .lg { position: relative; border: 1px solid var(--border2); border-radius: 12px; background: var(--panel); padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; cursor: pointer; }
+  .lg.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .lg > svg:not(.ic) { width: 100%; height: 92px; background: #fff; border-radius: 8px; }
+  .lg.add .ic { width: 26px; height: 26px; }
+  .lg .nm { font-weight: 600; font-size: 12px; text-align: center; }
+  .lg .del { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 6px; border: none; background: rgba(0,0,0,0.55); color: #fff; display: grid; place-items: center; }
+  .lg.add { justify-content: center; min-height: 128px; color: var(--muted); border-style: dashed; }
+  .toast { position: fixed; left: 50%; top: 58px; transform: translate(-50%, -10px); opacity: 0; pointer-events: none; padding: 9px 14px; border-radius: 9px;
+    background: #2A2A30; border: 1px solid var(--border2); box-shadow: 0 10px 30px rgba(0,0,0,0.45); z-index: 60; transition: opacity 160ms, transform 200ms var(--ease-out);
+    display: flex; gap: 10px; align-items: center; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast.err { border-color: var(--danger); }
+  .toast a { color: #FF8F94; cursor: pointer; text-decoration: underline; }
+
+  /* ---------- просмотр перед печатью ---------- */
+  .pv-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: rgba(19,19,21,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .pv-bar .t { font-weight: 700; font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pv-note { text-align: center; color: var(--muted); font-size: 12px; padding: 12px 0 2px; }
+  #printRoot { padding: 14px 0 50px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+
+  /* ================= стекло: логотип на фоне, полупрозрачные панели поверх ================= */
+  :root {
+    --glass: rgba(28,28,32,0.58); --glass-hi: rgba(40,40,46,0.66); --glass-deep: rgba(16,16,19,0.62);
+    --glass-line: rgba(255,255,255,0.075); --glass-line2: rgba(255,255,255,0.13);
+    --glass-top: inset 0 1px 0 rgba(255,255,255,0.05);
+    --blur: blur(18px) saturate(140%);
+  }
+  html, body { background: #0F0F11; }
+  body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(1100px 620px at 82% -8%, rgba(227,52,60,0.13), transparent 62%),
+      radial-gradient(900px 600px at -6% 108%, rgba(201,205,211,0.07), transparent 60%),
+      radial-gradient(700px 500px at 50% 55%, rgba(255,255,255,0.025), transparent 70%); }
+  /* фон — тот же, что у Видеоаналитики (детализированный логотип xVision для тёмного фона) */
+  .bg-logo { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+  .bg-logo img { width: min(92%, 1700px); max-height: 82%; object-fit: contain; opacity: 0.085; transform: translateY(2%); user-select: none; -webkit-user-drag: none; }
+  .titlebar, .views { position: relative; z-index: 1; }
+  .views { background: transparent; }
+
+  .btn { background: rgba(36,36,41,0.62); border-color: var(--glass-line2); box-shadow: var(--glass-top); }
+  .btn:hover { background: rgba(52,52,58,0.72); }
+  .btn.ghost { background: transparent; box-shadow: none; }
+  .btn.primary { box-shadow: 0 6px 18px rgba(227,52,60,0.22), inset 0 1px 0 rgba(255,255,255,0.25); }
+  .inp, .sel, .ta { background: rgba(12,12,14,0.55); border-color: var(--glass-line2); }
+  .sel option { background: #1E1E22; }
+
+  /* карточки библиотеки */
+  .ex-card, .tr-row, .pick, .it, .card { background: linear-gradient(180deg, rgba(40,40,46,0.55), rgba(24,24,28,0.55));
+    border-color: var(--glass-line); box-shadow: var(--glass-top), 0 10px 30px rgba(0,0,0,0.22); }
+  .ex-card:hover, .tr-row:hover { border-color: var(--glass-line2); transform: translateY(-1px); }
+  .empty { background: rgba(24,24,28,0.45); border-color: var(--glass-line2); }
+  .tabs { border-bottom-color: var(--glass-line); }
+
+  /* рабочее место: шапка, панель инструментов, свойства — стекло; площадка «висит» над фоном */
+  .ws-head { background: rgba(22,22,26,0.6); border-bottom-color: var(--glass-line); backdrop-filter: var(--blur); box-shadow: var(--glass-top); }
+  .ws-acts { border-color: var(--glass-line); }
+  .ws-body { gap: 12px; padding: 12px; }
+  .rail, .side { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 16px; backdrop-filter: var(--blur);
+    box-shadow: var(--glass-top), 0 18px 50px rgba(0,0,0,0.3); }
+  .stage { background: transparent; padding: 4px 4px 0; }
+  .rink-wrap svg { filter: drop-shadow(0 18px 40px rgba(0,0,0,0.55)); border-radius: 6px; }
+  .props { background: var(--glass-hi); border-color: var(--glass-line2); }
+  .seg { background: rgba(22,22,26,0.6); border-color: var(--glass-line2); backdrop-filter: var(--blur); }
+  .seg button.on { background: rgba(255,255,255,0.1); }
+  .tool:hover { background: rgba(255,255,255,0.07); }
+
+  /* всплывающие окна */
+  .fly, .selbar, .toast { background: rgba(34,34,39,0.78); border-color: var(--glass-line2); backdrop-filter: blur(22px) saturate(150%); }
+  .modal-bg { background: rgba(6,6,8,0.42); backdrop-filter: blur(6px); }
+  .modal { background: rgba(28,28,32,0.8); border-color: var(--glass-line2); backdrop-filter: blur(26px) saturate(150%); box-shadow: var(--glass-top), 0 30px 80px rgba(0,0,0,0.55); }
+  .modal-f { border-top-color: var(--glass-line); }
+  .lg { background: rgba(40,40,46,0.5); border-color: var(--glass-line2); }
+  .pv-bar { background: rgba(18,18,21,0.7); backdrop-filter: var(--blur); border-bottom-color: var(--glass-line); }
+  .btn.primary, .btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.danger:hover { background: rgba(217,72,78,0.16); border-color: var(--danger); }
+
+  /* ================= xVision в стиле ITAA: графит, клубный красный, «арена» на фоне ================= */
+  :root {
+    --bg: #0D0E10; --surface: #16171B; --panel: #1E2025; --panel2: #272A31; --panel3: #30333B;
+    --border: #2C2F37; --border2: #3A3E48;
+    --text: #F3F3F5; --muted: #9A9CA6; --faint: #62656F;
+    --accent: #E3343C; --accent-ink: #FFFFFF; --accent-soft: rgba(227,52,60,0.14); --accent-line: rgba(227,52,60,0.55);
+    --accent-text: #FF8F94; --sand: #C0B19A; --sand-ink: #D9CDB8;
+    --glass: rgba(255,255,255,0.055); --glass-hi: rgba(255,255,255,0.085); --glass-deep: rgba(9,10,12,0.55);
+    --glass-line: rgba(255,255,255,0.10); --glass-line2: rgba(255,255,255,0.14);
+    --glass-top: inset 0 1px 0 rgba(255,255,255,0.10);
+    --blur: blur(24px) saturate(150%);
+  }
+  html, body { background: #0D0E10; }
+
+  /* фон: тёмный, с едва заметной косой красной полосой (без логотипа и свечений) */
+  .arena { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .arena .glow { position: absolute; border-radius: 50%; }
+  .arena .glow-red { right: -12%; top: -22%; width: 900px; height: 900px; opacity: 0.5;
+    background: radial-gradient(closest-side, rgba(226,6,19,0.55), rgba(226,6,19,0) 70%); }
+  .arena .glow-sand { left: -14%; bottom: -34%; width: 760px; height: 760px;
+    background: radial-gradient(closest-side, rgba(192,177,154,0.22), rgba(192,177,154,0) 70%); }
+  .arena .stripe { position: absolute; top: -20%; height: 160%; background: #E3343C; transform: rotate(22deg); }
+  .arena .stripe-1 { left: 62%; width: 120px; opacity: 0.075; }
+  .arena .stripe-2 { left: 71%; width: 34px; opacity: 0.05; }
+  .arena .rink { display: none; } /* на рабочем экране контур площадки спорит с логотипом — как в «тихом» фоне платформы */
+
+  body::before { display: none; }
+  .bg-logo img { position: relative; opacity: 0.07; }
+  .brand-title .x { color: var(--accent); }
+  .btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.11); border-radius: 10px; box-shadow: none; }
+  .btn:hover { background: rgba(255,255,255,0.11); }
+  .btn.ghost { background: transparent; border-color: transparent; }
+  .btn.ghost:hover { background: rgba(255,255,255,0.08); }
+  .btn.primary, .btn.primary:hover { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 8px 22px rgba(227,52,60,0.28); }
+  .btn.primary:hover { background: #F04149; filter: none; }
+  .inp, .sel, .ta { border-radius: 10px; background: rgba(0,0,0,0.28); border-color: rgba(255,255,255,0.10); }
+  .ex-card, .tr-row, .pick, .card { background: var(--glass); border-color: var(--glass-line); border-radius: 18px; box-shadow: var(--glass-top), 0 20px 50px rgba(0,0,0,0.3); }
+  .ex-card:hover, .tr-row:hover { border-color: rgba(227,52,60,0.6); background: rgba(255,255,255,0.085); }
+  .ex-card .pic { border-radius: 12px 12px 0 0; }
+  .ws-head { background: rgba(13,14,16,0.55); }
+  .rail, .side { background: var(--glass); border-color: var(--glass-line); border-radius: 18px; box-shadow: var(--glass-top), 0 30px 80px rgba(0,0,0,0.45); }
+  .props { background: rgba(255,255,255,0.07); border-radius: 14px; }
+  .seg { background: rgba(255,255,255,0.05); border-radius: 12px; }
+  .seg button { border-radius: 9px; }
+  .seg button.on { background: rgba(255,255,255,0.13); }
+  .tool { border-radius: 10px; }
+  .tool.on { background: var(--accent-soft); border-color: var(--accent-line); }
+  .modal { background: rgba(24,25,29,0.9); border-radius: 22px; }
+  .modal-bg { background: rgba(5,6,8,0.6); }
+  .fly, .selbar, .toast { background: rgba(28,29,33,0.95); border-radius: 14px; }
+  .kicker, .sec-t, .side-t, .grp-t, .fl-t, .lbl { color: var(--sand-ink); }
+  .brand-sub, .tr-name:hover, .toast a { color: var(--accent-text); }
+
+  :root { color-scheme: dark; }
+  select option, select optgroup { background: #1F2024; color: #EDEDF0; }
+</style>
+</head>
+<body>
+  <div class="bg-logo" id="bgLogo" aria-hidden="true"><div class="arena"><div class="stripe stripe-1"></div><div class="stripe stripe-2"></div></div></div>
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14h6M9 17h4"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5.5-5.5 4 4 2.5-2.5 4.5 4.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+    <symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5 3l14 7-6 2-2 6z"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6.5V5h14v1.5"/><path d="M12 5v14"/><path d="M9 19h6"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1.5" fill="currentColor" fill-opacity="0.25"/></symbol>
+    <symbol id="i-oval" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.5" ry="6" fill="currentColor" fill-opacity="0.25"/></symbol>
+    <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="5"/><circle cx="12" cy="12" r="3.4"/><path d="M12 5v3.6M12 15.4V19"/></symbol>
+    <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M5 19h14"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-front" viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="1.5"/><rect x="9" y="9" width="11" height="11" rx="1.5" fill="currentColor" fill-opacity="0.3"/></symbol>
+    <symbol id="i-clear" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M7.5 17 4 13.5 13.5 4l6.5 6.5L13 17.5z"/><path d="m9 8.5 6.5 6.5"/></symbol>
+  </svg>
+
+  <header class="titlebar">
+    <div class="brand"><img src="build/logo-mark.png" alt="" /><div class="brand-title"><span class="x">x</span><span class="v">Vision</span></div><div class="brand-sub">Тренерская</div></div>
+    <div class="tb-sp"></div>
+    <span class="save-st" id="saveSt"></span>
+    <button class="btn sm" id="logoBtn" title="Логотип в центре площадки и в шапке печатных планов"><svg class="ic"><use href="#i-logo"/></svg><span>Логотип и подпись</span></button>
+  </header>
+
+  <div class="views">
+    <!-- библиотека -->
+    <section class="view show" id="vLib">
+      <div class="lib">
+        <div class="kicker"><b>xVision</b> План тренировки</div>
+        <div class="h1">Тренерская</div>
+        <p class="lead">Рисуйте упражнения на макете площадки, собирайте из них тренировки и печатайте планы — на день, неделю или месяц.</p>
+        <div class="row">
+          <button class="btn primary" id="newTrBtn"><svg class="ic"><use href="#i-plus"/></svg>Новая тренировка</button>
+          <button class="btn" id="newExBtn"><svg class="ic"><use href="#i-plus"/></svg>Новое упражнение</button>
+          <span class="tb-sp"></span>
+          <span class="save-st" id="saveSt2"></span>
+          <button class="btn ghost" id="logoBtn2" title="Логотип в центре площадки и в шапке печатных планов"><svg class="ic"><use href="#i-logo"/></svg>Логотип и подпись</button>
+          <button class="btn ghost" id="importBtn" title="Добавить в библиотеку готовые упражнения: файл от другого тренера или картинки уже нарисованных схем"><svg class="ic"><use href="#i-import"/></svg>Импорт упражнений</button>
+          <input type="file" id="importFile" accept=".xvcoach,.json" style="display:none" />
+          <input type="file" id="importImg" accept="image/png,image/jpeg,image/webp,image/bmp" multiple style="display:none" />
+        </div>
+        <div class="restore-bar" id="restoreBar" style="display:none">
+          <svg class="ic"><use href="#i-import"/></svg><span id="restoreText"></span>
+          <button class="btn sm primary" id="restoreGo">Посмотреть и перенести</button>
+          <button class="btn icon sm" id="restoreHide" title="Скрыть"><svg class="ic"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="tabs">
+          <button class="tab on" data-tab="tr">Тренировки<span class="cnt" id="cntTr"></span></button>
+          <button class="tab" data-tab="ex">Упражнения<span class="cnt" id="cntEx"></span></button>
+        </div>
+        <div class="filters">
+          <div class="search"><svg class="ic"><use href="#i-search"/></svg><input class="inp" id="libSearch" placeholder="Поиск по названию" /></div>
+          <select class="sel" id="trPeriod">
+            <option value="all">Все даты</option><option value="week">Эта неделя</option><option value="month">Этот месяц</option>
+            <option value="future">Предстоящие</option><option value="past">Прошедшие</option>
+          </select>
+          <select class="sel" id="exCat" style="display:none"></select>
+        </div>
+        <div id="libList"></div>
+      </div>
+      <div class="selbar" id="selBar">
+        <span class="t" id="selText"></span>
+        <button class="btn sm ghost" id="selAll">Выбрать все</button>
+        <button class="btn sm ghost" id="selNone">Снять</button>
+        <button class="btn sm" id="selExport"><svg class="ic"><use href="#i-export"/></svg>Экспорт</button>
+        <button class="btn sm primary" id="selPrint"><svg class="ic"><use href="#i-print"/></svg>Печать / PDF выбранных</button>
+      </div>
+    </section>
+
+    <!-- упражнение -->
+    <section class="view" id="vEx">
+      <div class="ws">
+        <div class="ws-head">
+          <button class="btn icon" id="exBack" title="Назад к библиотеке"><svg class="ic"><use href="#i-back"/></svg></button>
+          <input class="title-inp" id="exName" maxlength="120" placeholder="Новое упражнение" title="Название упражнения" />
+          <span id="exTitle" hidden></span>
+          <select class="sel" id="exCatSel" title="Категория"></select>
+          <select class="sel" id="exAge" title="Возраст" style="width:130px"></select>
+          <label class="min-fld" title="Длительность"><input class="inp" id="exMin" type="number" min="1" max="180" />мин</label>
+          <span class="ws-acts" id="wsActs">
+            <button class="btn icon" data-act="undo" title="Отменить (Ctrl+Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
+            <button class="btn icon" data-act="redo" title="Повторить (Ctrl+Y)"><svg class="ic"><use href="#i-redo"/></svg></button>
+            <button class="btn icon" data-act="clear" title="Очистить площадку"><svg class="ic"><use href="#i-clear"/></svg></button>
+          </span>
+          <button class="btn" id="exPng"><svg class="ic"><use href="#i-image"/></svg>PNG</button>
+          <button class="btn" id="exPdf"><svg class="ic"><use href="#i-pdf"/></svg>Печать / PDF</button>
+          <button class="btn primary" id="exSave"><svg class="ic"><use href="#i-check"/></svg>Сохранить</button>
+        </div>
+        <div class="ws-body">
+          <aside class="rail" id="tools"></aside>
+          <div class="stage">
+            <div class="rink-wrap" id="rinkWrap"></div>
+            <div class="under">
+              <div class="seg" id="viewSeg"></div>
+              <span class="hint" id="toolHint"></span>
+            </div>
+          </div>
+          <aside class="side">
+            <div class="card props" id="props"></div>
+            <label class="fld"><span class="cap">Описание — как выполнять</span><textarea class="ta" id="exDesc" rows="7" placeholder="1. Тренер даёт шайбу в угол.&#10;2. Защитник отдаёт на крайнего…"></textarea></label>
+            <label class="fld"><span class="cap">Ключевые моменты</span><textarea class="ta" id="exKp" rows="5" placeholder="Голова поднята, передача на крюк, скорость на входе…"></textarea></label>
+            <div class="kbd-help">
+              <div><kbd>V</kbd>выбор <kbd>T</kbd>текст <kbd>1</kbd>–<kbd>8</kbd>линии</div>
+              <div><kbd>Del</kbd>удалить <kbd>Ctrl+D</kbd>копия <kbd>Ctrl+Z</kbd>отменить</div>
+              <div>Наведите на игрока или инвентарь слева — появится выбор номеров и вариантов.</div>
+              <div>Двойной щелчок по игроку или тексту — изменить подпись. Shift при рисовании — прямая/плавная линия.</div>
+              <div><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> — крупнее / мельче всё окно программы (масштаб общий с Видеоаналитикой), <kbd>Ctrl</kbd>+<kbd>0</kbd> — как было.</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+      <div class="fly" id="fly"></div>
+    </section>
+
+    <!-- тренировка -->
+    <section class="view" id="vTr">
+      <div class="page" style="max-width:1080px">
+        <div class="page-head">
+          <button class="btn icon" id="trBack" title="Назад"><svg class="ic"><use href="#i-back"/></svg></button>
+          <div class="h1" id="trTitle">Новая тренировка</div>
+          <button class="btn" id="trExport" title="Сохранить в файл, чтобы передать другому тренеру"><svg class="ic"><use href="#i-export"/></svg>Экспорт</button>
+          <button class="btn" id="trPrint"><svg class="ic"><use href="#i-print"/></svg>Печать / PDF</button>
+          <button class="btn primary" id="trSave"><svg class="ic"><use href="#i-check"/></svg>Сохранить</button>
+        </div>
+        <div class="fgrid" style="grid-template-columns: 2fr 1.2fr 150px 110px;">
+          <label class="fld"><span class="cap">Название</span><input class="inp" id="trName" maxlength="120" placeholder="Например: Тренировка №18 — выход из зоны" /></label>
+          <label class="fld"><span class="cap">Команда</span><input class="inp" id="trTeam" maxlength="60" list="teamList" placeholder="—" /><datalist id="teamList"></datalist></label>
+          <label class="fld"><span class="cap">Дата</span><input class="inp" id="trDate" type="date" /></label>
+          <label class="fld"><span class="cap">Время</span><input class="inp" id="trTime" type="time" /></label>
+        </div>
+        <div class="fgrid" style="grid-template-columns: 2fr 1fr;">
+          <label class="fld"><span class="cap">Тема тренировки</span><input class="inp" id="trTopic" maxlength="160" placeholder="Например: выход из зоны и игра в средней зоне" /></label>
+          <label class="fld"><span class="cap">Место</span><input class="inp" id="trPlace" maxlength="80" placeholder="Например: Малая арена" /></label>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="row" style="margin-bottom:12px">
+            <span class="cap" style="font-size:12px">Упражнения</span><span class="hint">общее время</span><span class="total" id="trTotal">0 мин</span>
+            <span class="tb-sp"></span>
+            <button class="btn sm primary" id="trAddLib"><svg class="ic"><use href="#i-plus"/></svg>Из библиотеки</button>
+            <button class="btn sm" id="trAddNew"><svg class="ic"><use href="#i-plus"/></svg>Нарисовать новое</button>
+          </div>
+          <div class="items" id="trItems"></div>
+        </div>
+        <label class="fld"><span class="cap">Заметки к тренировке</span><textarea class="ta" id="trNotes" rows="3" placeholder="Инвентарь, состав групп, акценты на день…"></textarea></label>
+      </div>
+    </section>
+
+    <!-- печать -->
+    <section class="view" id="vPrint">
+      <div class="pv-bar">
+        <button class="btn icon" id="pvBack" title="Назад"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="t" id="pvTitle"></div>
+        <button class="btn" id="pvPrint"><svg class="ic"><use href="#i-print"/></svg>Печать…</button>
+        <button class="btn primary" id="pvPdf"><svg class="ic"><use href="#i-pdf"/></svg>Сохранить PDF</button>
+      </div>
+      <div class="pv-note">Формат A4. При печати каждая тренировка начинается с новой страницы.</div>
+      <div id="printRoot"></div>
+    </section>
+  </div>
+
+  <!-- окна -->
+  <div class="modal-bg" id="dlg"><div class="modal">
+    <div class="modal-h"><h3 id="dlgTitle"></h3></div>
+    <div class="modal-b"><p class="modal-text" id="dlgText"></p></div>
+    <div class="modal-f" id="dlgBtns"></div>
+  </div></div>
+
+  <div class="modal-bg" id="pickDlg"><div class="modal wide">
+    <div class="modal-h"><h3>Добавить упражнения</h3>
+      <div class="search" style="max-width:260px"><svg class="ic"><use href="#i-search"/></svg><input class="inp" id="pickSearch" placeholder="Поиск" /></div>
+      <select class="sel" id="pickCat"></select>
+    </div>
+    <div class="modal-b" style="flex:1"><div class="pick-grid" id="pickGrid"></div></div>
+    <div class="modal-f"><span class="hint" id="pickInfo" style="margin-right:auto;align-self:center"></span><button class="btn" id="pickCancel">Отмена</button><button class="btn primary" id="pickOk">Добавить</button></div>
+  </div></div>
+
+  <div class="modal-bg" id="impDlg"><div class="modal wide" style="height:auto;max-height:100%">
+    <div class="modal-h"><h3 id="impTitle" style="margin-right:auto">Импорт упражнений</h3><button class="btn icon sm" id="impClose"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="modal-b" style="flex:1">
+      <div id="impStart">
+        <p class="modal-text">Добавьте в свою библиотеку упражнения, которые уже нарисованы. Потом из них можно собирать тренировки — так же, как из своих.</p>
+        <div class="imp-opts">
+          <button class="imp-opt" id="impPickPack"><svg class="ic"><use href="#i-import"/></svg><b>Файл от другого тренера</b><span>Файл .xvcoach — его сохраняет кнопка «Экспорт» в Тренерской. Упражнения остаются редактируемыми: можно двигать игроков и менять линии.</span></button>
+          <button class="imp-opt" id="impPickImg"><svg class="ic"><use href="#i-image"/></svg><b>Картинки готовых схем</b><span>PNG или JPG: схемы из другой программы, скриншоты, фото листа. Можно выбрать сразу несколько. Поверх картинки можно дорисовывать.</span></button>
+          <button class="imp-opt" id="impPickOld"><svg class="ic"><use href="#i-import"/></svg><b>Из прошлой версии программы</b><span>Тренировки и упражнения, нарисованные в прошлой версии xVision или в другой её копии на этом компьютере (обычная и ITAA).</span></button>
+        </div>
+      </div>
+      <div id="impList" style="display:none">
+        <p class="modal-text" id="impNote"></p>
+        <div class="pick-grid" id="impGrid"></div>
+      </div>
+    </div>
+    <div class="modal-f" id="impFoot" style="display:none">
+      <label class="row" id="impTrRow" style="cursor:pointer;margin-right:auto"><input type="checkbox" class="chk" id="impTr" checked /><span id="impTrText"></span></label>
+      <label class="row" id="impCatRow" style="margin-right:auto"><span class="cap">Часть тренировки</span><select class="sel" id="impCat"></select></label>
+      <span class="hint" id="impInfo" style="align-self:center"></span>
+      <button class="btn" id="impBack">Назад</button><button class="btn primary" id="impOk">Добавить в библиотеку</button>
+    </div>
+  </div></div>
+
+  <div class="modal-bg" id="logoDlg"><div class="modal" style="max-width:720px">
+    <div class="modal-h"><h3>Логотип и подпись</h3><button class="btn icon sm" id="logoClose"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="modal-b">
+      <p class="modal-text">Логотип стоит в центре площадки во всех упражнениях и в шапке печатных планов и карточек.</p>
+      <div class="logos" id="logoGrid"></div>
+      <input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none" />
+      <div class="row" id="logoBgRow" style="margin-top:12px;display:none">
+        <span class="cap">Фон под своим логотипом</span>
+        <div class="seg" id="logoBgSeg"><button data-v="none">Без фона</button><button data-v="dark">Тёмный круг</button></div>
+      </div>
+      <label class="row" style="margin-top:14px;cursor:pointer"><input type="checkbox" class="chk" id="setTrap" /><span>Трапеция за воротами (разметка ИИХФ) — по умолчанию выключена</span></label>
+      <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+        <label class="fld"><span class="cap">Клуб / школа (в шапке печати)</span><input class="inp" id="setClub" maxlength="60" placeholder="Например: Академия «Авангард»" /></label>
+        <label class="fld"><span class="cap">Тренер (внизу печати)</span><input class="inp" id="setCoach" maxlength="60" placeholder="Фамилия И. О." /></label>
+      </div>
+    </div>
+    <div class="modal-f"><button class="btn primary" id="logoDone">Готово</button></div>
+  </div></div>
+
+  <div class="toast" id="toast"><span id="toastText"></span><a id="toastLink"></a></div>
+
+<script src="coach-rink.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  // Связь Тренерской с программой (сохранение библиотеки, PDF, печать, экспорт).
+  // Тренерская открыта во фрейме главного окна. Если мост программы во фрейм не попал или появился позже,
+  // запрос идёт через главное окно — у него мост есть всегда. Раньше в этом случае «Сохранить PDF» молча
+  // открывал системную печать, а библиотека не записывалась на диск.
+  const API_NAMES = ['coachLoad', 'coachSave', 'coachPdf', 'coachPrint', 'coachSavePng', 'coachExport', 'coachShowFile', 'coachFindOld'];
+  const viaParent = (() => {
+    let seq = 0; const wait = new Map();
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (!d || d.type !== 'coach-api-res' || e.source !== window.parent || !wait.has(d.id)) return;
+      const w = wait.get(d.id); wait.delete(d.id); clearTimeout(w.tm);
+      if (d.ok) w.res(d.value); else w.rej(new Error(d.error || 'ошибка программы'));
+    });
+    return (name, args, timeoutMs) => new Promise((res, rej) => {
+      if (window.parent === window) { rej(new Error('Тренерская открыта не в программе xVision')); return; }
+      const id = ++seq;
+      const tm = timeoutMs ? setTimeout(() => { wait.delete(id); rej(new Error('программа не ответила')); }, timeoutMs) : 0;
+      wait.set(id, { res, rej, tm });
+      window.parent.postMessage({ type: 'coach-api', id, name, args }, '*');
+    });
+  })();
+  const api = {};
+  API_NAMES.forEach((n) => {
+    api[n] = (...args) => {
+      const own = window.api;
+      if (own && typeof own[n] === 'function') return own[n](...args);
+      return viaParent(n, args, n === 'coachLoad' ? 10000 : 0);
+    };
+  });
+  const R = window.Rink;
+  const esc = R.esc;
+  const CATS = ['Разминка', 'Основная часть', 'Заключительная'];
+  // категории из старых упражнений тоже остаются в списках
+  function allCats() { const extra = []; lib.exercises.forEach((e) => { if (e.category && CATS.indexOf(e.category) === -1 && extra.indexOf(e.category) === -1) extra.push(e.category); }); return CATS.concat(extra); }
+  const AGES = ['Любой', 'до 8 лет', '9–10 лет', '11–12 лет', '13–14 лет', '15–16 лет', '17+'];
+  const PALETTE = ['#17171A', '#1F7DC1', '#D23C44', '#E8801E', '#2E9E5B', '#7E4FC9', '#8A8F99', '#E5B323'];
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const ico = (n) => '<svg class="ic"><use href="#i-' + n + '"/></svg>';
+
+  // ---------- хранение ----------
+  let lib = { version: 1, exercises: [], trainings: [], settings: { logo: 'none', customLogos: [], club: '', coach: '' } };
+  const builtin = {};
+  let saveTimer = 0;
+  let loadFailed = false;   // библиотеку с диска прочитать не удалось — тогда ничего не записываем, чтобы не затереть её
+  let knownIds = null;      // что было в библиотеке при прошлом сохранении: так видно, что тренер удалил сам
+  function noteDeleted() {
+    const now = new Set(lib.exercises.map((x) => x.id).concat(lib.trainings.map((x) => x.id)));
+    if (knownIds) {
+      const gone = Array.from(knownIds).filter((id) => !now.has(id));
+      if (gone.length) lib.settings.deletedIds = (lib.settings.deletedIds || []).filter((id) => !now.has(id)).concat(gone).slice(-3000);
+    }
+    knownIds = now;
+  }
+  function saveLib(now) {
+    clearTimeout(saveTimer);
+    const run = async () => {
+      if (loadFailed) { $('saveSt').textContent = $('saveSt2').textContent = 'Библиотека не прочитана — изменения не сохраняются. Перезапустите программу.'; return; }
+      noteDeleted();
+      let r;
+      try { r = await api.coachSave(lib); } catch (e) { r = { ok: false, error: e.message }; }
+      $('saveSt').textContent = $('saveSt2').textContent = r && r.ok ? 'Сохранено ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'Не удалось сохранить';
+    };
+    if (now) run(); else saveTimer = setTimeout(run, 300);
+  }
+  function exById(id) { return lib.exercises.find((e) => e.id === id) || null; }
+
+  // логотипы: уменьшаем, чтобы файлы и печать были лёгкими
+  function shrinkImage(dataUrl, maxW) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const w0 = img.naturalWidth || 400, h0 = img.naturalHeight || 400;
+        const k = Math.min(1, maxW / Math.max(w0, h0));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w0 * k)); cv.height = Math.max(1, Math.round(h0 * k));
+        const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(img, 0, 0, cv.width, cv.height);
+        let out = dataUrl;
+        try { out = cv.toDataURL('image/png'); } catch (e) {}
+        resolve({ data: out, ar: w0 / h0 });
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
+  }
+  function curLogo() {
+    const s = lib.settings.logo || 'none';
+    if (builtin[s]) return builtin[s];
+    if (s.indexOf('custom:') === 0) return (lib.settings.customLogos || []).find((c) => 'custom:' + c.id === s) || null;
+    return null;
+  }
+  const BUILTIN_NAMES = { none: 'Обычная площадка', xvision: 'xVision', avangard: 'Авангард' };
+
+  // ---------- мелочи интерфейса ----------
+  let toastTimer = 0;
+  function toast(text, opts) {
+    opts = opts || {};
+    $('toastText').textContent = text;
+    const a = $('toastLink');
+    a.textContent = opts.linkText || ''; a.onclick = opts.onLink || null;
+    $('toast').classList.toggle('err', !!opts.err);
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), opts.linkText ? 6000 : 2600);
+  }
+  // окно с вопросом: buttons [{label, value, kind}] -> Promise(value)
+  function ask(title, text, buttons) {
+    return new Promise((resolve) => {
+      $('dlgTitle').textContent = title; $('dlgText').textContent = text;
+      const box = $('dlgBtns'); box.innerHTML = '';
+      buttons.forEach((b) => {
+        const el = document.createElement('button');
+        el.className = 'btn ' + (b.kind || ''); el.textContent = b.label;
+        el.onclick = () => { $('dlg').classList.remove('show'); resolve(b.value); };
+        box.appendChild(el);
+      });
+      $('dlg').classList.add('show');
+      const last = box.lastChild; if (last) setTimeout(() => last.focus(), 30);
+    });
+  }
+  function fillSelect(sel, items, withAll) {
+    sel.innerHTML = (withAll ? '<option value="">' + withAll + '</option>' : '') + items.map((c) => '<option>' + esc(c) + '</option>').join('');
+  }
+  const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const MON_S = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const WD = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+  const WD_S = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  function parseDate(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function longDate(s) { const d = parseDate(s); return d ? d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ', ' + WD[d.getDay()] : ''; }
+  function trMinutes(tr) { return (tr.items || []).reduce((a, it) => a + (Number(it.minutes) || 0), 0); }
+  function exThumb(ex, cls) { return R.svg({ view: ex.view || 'full', logo: curLogo(), objects: ex.objects || [], className: cls || '', bg: ex.bg }); }
+
+  // ======================================================================
+  //  БИБЛИОТЕКА
+  // ======================================================================
+  let libTab = 'tr';
+  const selected = { tr: new Set(), ex: new Set() };
+  function showView(id) {
+    document.querySelectorAll('.view').forEach((v) => v.classList.toggle('show', v.id === id));
+    $(id).scrollTop = 0;
+  }
+  function openLibrary() {
+    const cur = $('exCat').value; fillSelect($('exCat'), allCats(), 'Все категории'); $('exCat').value = cur;
+    showView('vLib'); renderLib();
+  }
+  function renderLib() {
+    $('cntTr').textContent = lib.trainings.length || '';
+    $('cntEx').textContent = lib.exercises.length || '';
+    document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === libTab));
+    $('trPeriod').style.display = libTab === 'tr' ? '' : 'none';
+    $('exCat').style.display = libTab === 'ex' ? '' : 'none';
+    const q = $('libSearch').value.trim().toLowerCase();
+    const box = $('libList');
+    if (libTab === 'tr') {
+      const per = $('trPeriod').value, now = new Date(); now.setHours(0, 0, 0, 0);
+      const wStart = new Date(now); wStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); const wEnd = new Date(wStart); wEnd.setDate(wStart.getDate() + 7);
+      const list = lib.trainings.filter((t) => {
+        if (q && (t.name + ' ' + (t.team || '') + ' ' + (t.topic || '')).toLowerCase().indexOf(q) === -1) return false;
+        if (per === 'all') return true;
+        const d = parseDate(t.date); if (!d) return false;
+        if (per === 'week') return d >= wStart && d < wEnd;
+        if (per === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if (per === 'future') return d >= now;
+        return d < now;
+      }).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.updated || 0) - (a.updated || 0));
+      if (!list.length) {
+        box.innerHTML = '<div class="empty">' + (lib.trainings.length ? 'Ничего не найдено.' : 'Пока нет тренировок. Нажмите <b>«Новая тренировка»</b> и добавьте упражнения из библиотеки или нарисуйте новые.') + '</div>';
+      } else {
+        box.innerHTML = list.map((t) => {
+          const d = parseDate(t.date);
+          const exs = (t.items || []).map((it) => exById(it.exId)).filter(Boolean);
+          const meta = [exs.length + ' упр.', trMinutes(t) + ' мин', t.time, t.team, t.place].filter(Boolean).map(esc).join(' · ');
+          return '<div class="tr-row" data-id="' + t.id + '">' +
+            '<input type="checkbox" class="chk" data-sel="tr"' + (selected.tr.has(t.id) ? ' checked' : '') + ' />' +
+            '<div class="date-blk">' + (d ? '<div class="d">' + d.getDate() + '</div><div class="m">' + MON_S[d.getMonth()] + '</div><div class="w">' + WD_S[d.getDay()] + '</div>' : '<div class="w">без даты</div>') + '</div>' +
+            '<div style="min-width:0"><div class="tr-name" data-act="open">' + esc(t.name || 'Без названия') + (t.sample ? '<span class="badge">Пример</span>' : '') + '</div>' +
+            '<div class="tr-meta">' + meta + (t.topic ? ' — ' + esc(t.topic) : '') + '</div>' +
+            '<div class="thumbs">' + exs.slice(0, 6).map((e) => exThumb(e)).join('') + '</div></div>' +
+            '<div class="row"><button class="btn sm" data-act="open">' + ico('edit') + 'Открыть</button><button class="btn sm" data-act="print">' + ico('print') + 'PDF</button>' +
+            '<button class="btn sm icon" data-act="dup" title="Копия">' + ico('copy') + '</button><button class="btn sm icon danger" data-act="del" title="Удалить">' + ico('trash') + '</button></div></div>';
+        }).join('');
+      }
+    } else {
+      const cat = $('exCat').value;
+      const list = lib.exercises.filter((e) => (!q || (e.name || '').toLowerCase().indexOf(q) !== -1) && (!cat || e.category === cat))
+        .sort((a, b) => (b.updated || 0) - (a.updated || 0));
+      if (!list.length) {
+        box.innerHTML = '<div class="empty">' + (lib.exercises.length ? 'Ничего не найдено.' : 'Пока нет упражнений. Нажмите <b>«Новое упражнение»</b> и нарисуйте его на площадке.') + '</div>';
+      } else {
+        box.innerHTML = '<div class="ex-grid">' + list.map((e) =>
+          '<div class="ex-card" data-id="' + e.id + '"><div class="pic" data-act="open">' + exThumb(e) +
+          '<input type="checkbox" class="chk" data-sel="ex"' + (selected.ex.has(e.id) ? ' checked' : '') + ' /></div>' +
+          '<div class="body"><div class="nm" data-act="open">' + esc(e.name || 'Без названия') + (e.sample ? '<span class="badge">Пример</span>' : '') + '</div>' +
+          '<div class="mt">' + [e.category, (e.minutes || 0) + ' мин', e.age && e.age !== 'Любой' ? e.age : ''].filter(Boolean).map(esc).join(' · ') + '</div>' +
+          '<div class="acts"><button class="btn sm" data-act="open">' + ico('edit') + 'Открыть</button><button class="btn sm" data-act="print">' + ico('print') + 'PDF</button>' +
+          '<button class="btn sm icon" data-act="dup" title="Копия">' + ico('copy') + '</button><button class="btn sm icon danger" data-act="del" title="Удалить">' + ico('trash') + '</button></div></div></div>'
+        ).join('') + '</div>';
+      }
+    }
+    updateSelBar();
+  }
+  function updateSelBar() {
+    const n = selected[libTab].size;
+    $('selBar').classList.toggle('show', n > 0 && $('vLib').classList.contains('show'));
+    $('selText').textContent = 'Отмечено: ' + n;
+    $('selPrint').lastChild.textContent = libTab === 'tr' ? 'Печать / PDF выбранных' : 'Печать карточек';
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => { libTab = b.dataset.tab; renderLib(); }));
+  $('libSearch').addEventListener('input', renderLib);
+  $('trPeriod').addEventListener('change', renderLib);
+  $('exCat').addEventListener('change', renderLib);
+  $('libList').addEventListener('change', (e) => {
+    const c = e.target.closest('[data-sel]'); if (!c) return;
+    const id = e.target.closest('[data-id]').dataset.id;
+    if (c.checked) selected[c.dataset.sel].add(id); else selected[c.dataset.sel].delete(id);
+    updateSelBar();
+  });
+  $('libList').addEventListener('click', async (e) => {
+    if (e.target.closest('[data-sel]')) return;
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    const id = e.target.closest('[data-id]').dataset.id, act = a.dataset.act;
+    if (libTab === 'tr') {
+      const t = lib.trainings.find((x) => x.id === id); if (!t) return;
+      if (act === 'open') openTraining(t);
+      else if (act === 'print') openPrint(docTrainings([t]), t.name || 'Тренировка', openLibrary, t.name);
+      else if (act === 'dup') { const c = clone(t); c.id = uid(); c.name = (t.name || 'Тренировка') + ' (копия)'; c.sample = false; c.created = c.updated = Date.now(); lib.trainings.push(c); saveLib(); renderLib(); toast('Копия создана'); }
+      else if (act === 'del') {
+        if (await ask('Удалить тренировку?', '«' + (t.name || 'Без названия') + '» будет удалена. Упражнения останутся в библиотеке.', [{ label: 'Отмена', value: false }, { label: 'Удалить', value: true, kind: 'danger' }])) {
+          lib.trainings = lib.trainings.filter((x) => x !== t); selected.tr.delete(id); saveLib(); renderLib();
+        }
+      }
+    } else {
+      const ex = exById(id); if (!ex) return;
+      if (act === 'open') openExercise(ex, { back: openLibrary });
+      else if (act === 'print') openPrint(docExercises([ex]), ex.name || 'Упражнение', openLibrary, ex.name);
+      else if (act === 'dup') { const c = clone(ex); c.id = uid(); c.name = (ex.name || 'Упражнение') + ' (копия)'; c.sample = false; c.created = c.updated = Date.now(); lib.exercises.push(c); saveLib(); renderLib(); toast('Копия создана'); }
+      else if (act === 'del') {
+        const used = lib.trainings.filter((t) => (t.items || []).some((it) => it.exId === id));
+        const text = used.length ? 'Упражнение используется в тренировках (' + used.length + '): ' + used.slice(0, 3).map((t) => '«' + (t.name || 'Без названия') + '»').join(', ') + '. Из них оно тоже пропадёт.' : '«' + (ex.name || 'Без названия') + '» будет удалено.';
+        if (await ask('Удалить упражнение?', text, [{ label: 'Отмена', value: false }, { label: 'Удалить', value: true, kind: 'danger' }])) {
+          lib.exercises = lib.exercises.filter((x) => x !== ex);
+          used.forEach((t) => { t.items = t.items.filter((it) => it.exId !== id); });
+          selected.ex.delete(id); saveLib(); renderLib();
+        }
+      }
+    }
+  });
+  $('selAll').addEventListener('click', () => {
+    document.querySelectorAll('#libList [data-sel]').forEach((c) => { c.checked = true; selected[libTab].add(c.closest('[data-id]').dataset.id); });
+    updateSelBar();
+  });
+  $('selNone').addEventListener('click', () => { selected[libTab].clear(); renderLib(); });
+  $('selPrint').addEventListener('click', () => {
+    if (libTab === 'tr') {
+      const list = lib.trainings.filter((t) => selected.tr.has(t.id)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      if (list.length) openPrint(docTrainings(list), 'Тренировки: ' + list.length, openLibrary, list.length === 1 ? list[0].name : 'Тренировки');
+    } else {
+      const list = lib.exercises.filter((x) => selected.ex.has(x.id));
+      if (list.length) openPrint(docExercises(list), 'Карточки упражнений: ' + list.length, openLibrary, list.length === 1 ? list[0].name : 'Упражнения');
+    }
+  });
+  $('selExport').addEventListener('click', () => {
+    const trs = libTab === 'tr' ? lib.trainings.filter((t) => selected.tr.has(t.id)) : [];
+    const exIds = new Set(libTab === 'ex' ? Array.from(selected.ex) : []);
+    trs.forEach((t) => (t.items || []).forEach((it) => exIds.add(it.exId)));
+    exportPack(trs, lib.exercises.filter((x) => exIds.has(x.id)), trs.length === 1 ? trs[0].name : 'Тренерская');
+  });
+  $('newTrBtn').addEventListener('click', () => openTraining(null));
+  $('newExBtn').addEventListener('click', () => openExercise(null, { back: openLibrary }));
+
+  // ---------- экспорт / импорт ----------
+  async function exportPack(trainings, exercises, name) {
+    if (!trainings.length && !exercises.length) return;
+    const pack = { type: 'xvision-coach', version: 1, exported: new Date().toISOString(), trainings: clone(trainings), exercises: clone(exercises) };
+    let r;
+    try { r = await api.coachExport({ json: JSON.stringify(pack), name }); } catch (e) { r = { ok: false, error: e.message }; }
+    if (r && r.ok) toast('Файл сохранён', { linkText: 'Показать', onLink: () => api.coachShowFile(r.path) });
+    else if (r && !r.canceled) toast('Не удалось сохранить: ' + (r.error || ''), { err: true });
+  }
+  // Импорт: упражнения сначала показываются списком — тренер отмечает, какие добавить в свою библиотеку.
+  // Источник — файл .xvcoach от другого тренера или картинки уже нарисованных схем.
+  let IMP = null; // { kind: 'pack' | 'img' | 'restore', items: [{ ex, on, dup }], trainings: [] }
+  // ---------- тренировки из прошлых версий программы ----------
+  // Ищем на компьютере библиотеки других копий xVision (обычная и ITAA, старые названия) и резервные копии своей.
+  // Показываем только то, чего в библиотеке нет и что тренер не удалял сам. Ничего не добавляется без его согласия.
+  let OLD = null;
+  async function scanOld(manual) {
+    let r = null;
+    try { r = await api.coachFindOld(); } catch (e) { r = null; }
+    const have = new Set(lib.exercises.map((x) => x.id).concat(lib.trainings.map((x) => x.id)));
+    const dead = new Set(lib.settings.deletedIds || []);
+    const exByName = {}; lib.exercises.forEach((x) => { exByName[x.name || ''] = x.id; });
+    const trNames = new Set(lib.trainings.map((x) => x.name || ''));
+    const ex = new Map(), tr = new Map(), alias = {}, from = new Set();
+    ((r && r.sources) || []).forEach((s) => {
+      (s.lib.exercises || []).forEach((x) => {
+        if (!x || !x.id || have.has(x.id) || dead.has(x.id)) return;
+        if (x.sample && exByName[x.name || ''] != null) { alias[x.id] = exByName[x.name || '']; return; } // пример — такой же уже есть
+        const o = ex.get(x.id);
+        if (!o || (x.updated || 0) > (o.updated || 0)) { ex.set(x.id, x); from.add(s.label); }
+      });
+      (s.lib.trainings || []).forEach((t) => {
+        if (!t || !t.id || have.has(t.id) || dead.has(t.id) || (t.sample && trNames.has(t.name || ''))) return;
+        const o = tr.get(t.id);
+        if (!o || (t.updated || 0) > (o.updated || 0)) { tr.set(t.id, t); from.add(s.label); }
+      });
+    });
+    // упражнения, нужные найденным тренировкам, но удалённые тренером из своей библиотеки, не возвращаем:
+    // такие пункты просто выпадут из тренировки
+    OLD = { ex: Array.from(ex.values()), tr: Array.from(tr.values()), alias, from: Array.from(from) };
+    const n = OLD.ex.length + OLD.tr.length;
+    const sig = OLD.ex.map((x) => x.id).concat(OLD.tr.map((x) => x.id)).sort();
+    const hidden = new Set(lib.settings.restoreHidden || []);
+    const fresh = sig.some((id) => !hidden.has(id));
+    $('restoreBar').style.display = n && fresh ? '' : 'none';
+    if (n) $('restoreText').textContent = 'Найдены тренировки и упражнения из прошлой версии программы (' + OLD.from.join(', ') + '): тренировок — ' + OLD.tr.length + ', упражнений — ' + OLD.ex.length + '.';
+    if (manual) { if (n) openRestore(); else toast('На этом компьютере не найдено тренировок из прошлых версий, которых нет в библиотеке.'); return; }
+    // своих упражнений и тренировок в библиотеке ещё нет (только примеры) — значит, это первая встреча с новой версией:
+    // всё найденное переносится сразу, спрашивать нечего
+    const own = lib.exercises.some((x) => !x.sample) || lib.trainings.some((x) => !x.sample);
+    if (n && fresh && !own) { openRestore(); $('impOk').click(); }
+  }
+  function openRestore() {
+    if (!OLD || !(OLD.ex.length + OLD.tr.length)) return;
+    OLD.ex.forEach((x) => R.viewFor(x.view));
+    IMP = { kind: 'restore', items: OLD.ex.map((x) => ({ ex: x, on: true, dup: '' })), trainings: OLD.tr, alias: OLD.alias, from: OLD.from };
+    $('impTr').checked = true;
+    renderImport(); $('impDlg').classList.add('show');
+  }
+  $('restoreGo').addEventListener('click', openRestore);
+  $('restoreHide').addEventListener('click', () => {
+    if (OLD) lib.settings.restoreHidden = (lib.settings.restoreHidden || []).concat(OLD.ex.map((x) => x.id), OLD.tr.map((x) => x.id)).slice(-5000);
+    $('restoreBar').style.display = 'none'; saveLib();
+    toast('Скрыто. Вернуться к этому можно в любой момент: «Импорт упражнений» → «Из прошлой версии программы».');
+  });
+  function exSame(a, b) {
+    return (a.name || '') === (b.name || '') && JSON.stringify(a.objects || []) === JSON.stringify(b.objects || []) && ((a.bg && a.bg.data) || '') === ((b.bg && b.bg.data) || '');
+  }
+  function openImport() { IMP = null; renderImport(); $('impDlg').classList.add('show'); }
+  function closeImport() { $('impDlg').classList.remove('show'); IMP = null; }
+  function renderImport() {
+    $('impStart').style.display = IMP ? 'none' : '';
+    $('impList').style.display = IMP ? '' : 'none';
+    $('impFoot').style.display = IMP ? '' : 'none';
+    if (!IMP) { $('impTitle').textContent = 'Импорт упражнений'; return; }
+    const isImg = IMP.kind === 'img', isOld = IMP.kind === 'restore', n = IMP.items.filter((x) => x.on).length;
+    $('impTitle').textContent = isImg ? 'Картинки готовых схем' : isOld ? 'Перенос из прошлой версии' : 'Упражнения из файла';
+    const dups = IMP.items.filter((x) => x.dup).length;
+    $('impNote').textContent = isImg
+      ? 'Каждая картинка станет отдельным упражнением. Название можно поправить здесь, описание и минуты — потом, открыв упражнение.'
+      : isOld ? 'Найдено в: ' + IMP.from.join(', ') + '. Отмечено всё, чего нет в библиотеке: тренировок — ' + IMP.trainings.length + ', упражнений — ' + IMP.items.length + '. Снимите отметку с того, что переносить не нужно.'
+      : 'Отметьте упражнения, которые нужно добавить в свою библиотеку.' + (dups ? ' Уже имеющиеся (' + dups + ') сняты с выбора.' : '');
+    $('impGrid').innerHTML = IMP.items.map((it, k) =>
+      '<div class="pick' + (it.on ? ' on' : '') + '" data-k="' + k + '"><div class="pic">' + exThumb(it.ex) + '</div><div class="body">' +
+      (isImg ? '<input class="inp" data-nm="' + k + '" maxlength="80" value="' + esc(it.ex.name) + '" />' : '<div class="nm">' + esc(it.ex.name || 'Без названия') + '</div>') +
+      (isImg ? '' : '<div class="mt">' + esc(it.ex.category || '') + ' · ' + (it.ex.minutes || 0) + ' мин</div>') +
+      (it.dup ? '<span class="imp-dup">уже есть в библиотеке</span>' : '') +
+      '<button class="btn sm' + (it.on ? ' primary' : '') + '" style="align-self:flex-start;margin-top:6px">' + (it.on ? ico('check') + 'Добавить' : ico('plus') + 'Не добавлять') + '</button></div></div>').join('');
+    const trN = IMP.trainings.length;
+    $('impTrRow').style.display = !isImg && trN ? '' : 'none';
+    $('impTrText').textContent = (isOld ? 'Перенести и тренировки (' : 'Добавить и тренировки из файла (') + trN + ')';
+    $('impCatRow').style.display = isImg ? '' : 'none';
+    $('impInfo').textContent = 'Выбрано: ' + n;
+    $('impOk').disabled = !n && !(trN && $('impTr').checked && !isImg);
+  }
+  $('impGrid').addEventListener('click', (e) => {
+    if (e.target.closest('input')) return;
+    const c = e.target.closest('.pick'); if (!c || !IMP) return;
+    const it = IMP.items[+c.dataset.k]; it.on = !it.on; renderImport();
+  });
+  $('impGrid').addEventListener('input', (e) => { const k = e.target.dataset.nm; if (k != null && IMP) IMP.items[+k].ex.name = e.target.value; });
+  $('impTr').addEventListener('change', renderImport);
+  $('importBtn').addEventListener('click', openImport);
+  $('impClose').addEventListener('click', closeImport);
+  $('impBack').addEventListener('click', () => { IMP = null; renderImport(); });
+  $('impPickPack').addEventListener('click', () => $('importFile').click());
+  $('impPickImg').addEventListener('click', () => $('importImg').click());
+  $('impPickOld').addEventListener('click', () => scanOld(true));
+  $('importFile').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const pack = JSON.parse(await f.text());
+      if (!pack || pack.type !== 'xvision-coach') throw new Error('это не файл Тренерской');
+      const items = (pack.exercises || []).map((x) => { R.viewFor(x.view); const dup = lib.exercises.find((y) => exSame(x, y)); return { ex: x, dup: dup ? dup.id : '', on: !dup }; });
+      if (!items.length && !(pack.trainings || []).length) throw new Error('в файле нет упражнений');
+      IMP = { kind: 'pack', items, trainings: pack.trainings || [] };
+      $('impTr').checked = true;
+      renderImport(); $('impDlg').classList.add('show');
+    } catch (err) { toast('Не удалось открыть файл: ' + err.message, { err: true }); }
+  });
+  // картинка -> JPEG на белом фоне, не шире 1600 px: библиотека и печать остаются лёгкими
+  function shrinkPhoto(dataUrl, maxSide) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const w0 = img.naturalWidth, h0 = img.naturalHeight;
+        if (!w0 || !h0) return resolve(null);
+        const k = Math.min(1, maxSide / Math.max(w0, h0));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w0 * k)); cv.height = Math.max(1, Math.round(h0 * k));
+        const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+        c.imageSmoothingQuality = 'high'; c.drawImage(img, 0, 0, cv.width, cv.height);
+        try { resolve({ data: cv.toDataURL('image/jpeg', 0.86), ar: w0 / h0 }); } catch (e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
+  }
+  const readAsDataUrl = (f) => new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result || '')); r.onerror = () => resolve(''); r.readAsDataURL(f); });
+  $('importImg').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []).slice(0, 40); e.target.value = '';
+    if (!files.length) return;
+    const items = []; let bad = 0;
+    for (const f of files) {
+      const img = await shrinkPhoto(await readAsDataUrl(f), 1600);
+      if (!img) { bad++; continue; }
+      const ar = Math.min(3.2, Math.max(0.35, img.ar));
+      const view = 'img:' + ar.toFixed(3); R.viewFor(view);
+      items.push({ on: true, dup: '', ex: { id: null, name: f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').slice(0, 80), category: 'Основная часть', age: 'Любой', minutes: 10,
+        description: '', keypoints: '', view, bg: { data: img.data, ar }, objects: [] } });
+    }
+    if (!items.length) { toast('Не удалось прочитать картинки — нужны файлы PNG или JPG', { err: true }); return; }
+    if (bad) toast('Не прочитано файлов: ' + bad);
+    IMP = { kind: 'img', items, trainings: [] };
+    fillSelect($('impCat'), CATS); $('impCat').value = 'Основная часть';
+    renderImport(); $('impDlg').classList.add('show');
+  });
+  $('impOk').addEventListener('click', () => {
+    if (!IMP) return;
+    const isImg = IMP.kind === 'img', isOld = IMP.kind === 'restore', map = {};
+    let nEx = 0, nTr = 0;
+    if (isOld) { lib.exercises.forEach((e) => { map[e.id] = e.id; }); Object.assign(map, IMP.alias || {}); }
+    const add = (x) => {
+      // при переносе из прошлой версии упражнение сохраняет свой номер — тогда его не найдут повторно
+      const c = clone(x); const old = x.id; c.id = isOld && old && !exById(old) ? old : uid(); c.sample = false; c.updated = Date.now();
+      if (isImg) { c.category = $('impCat').value || c.category; c.name = (c.name || '').trim() || 'Упражнение'; }
+      R.viewFor(c.view); lib.exercises.push(c); nEx++;
+      if (old) map[old] = c.id;
+    };
+    IMP.items.forEach((it) => { if (it.on) add(it.ex); else if (it.dup && it.ex.id) map[it.ex.id] = it.dup; });
+    if (!isImg && $('impTr').checked) {
+      IMP.trainings.forEach((t) => {
+        // упражнения тренировки, которые не отметили, всё равно нужны ей — добавляем их тоже
+        (t.items || []).forEach((ti) => { if (!map[ti.exId]) { const it = IMP.items.find((q) => q.ex.id === ti.exId); if (it) add(it.ex); } });
+        const c = clone(t); c.id = isOld && t.id && !lib.trainings.some((q) => q.id === t.id) ? t.id : uid(); c.sample = false; c.updated = Date.now();
+        c.items = (c.items || []).filter((ti) => map[ti.exId]).map((ti) => ({ exId: map[ti.exId], minutes: ti.minutes }));
+        lib.trainings.push(c); nTr++;
+      });
+    }
+    if (isOld) { // что тренер решил не переносить, больше не предлагаем (вручную — «Импорт» → «Из прошлой версии»)
+      const skip = IMP.items.filter((it) => !it.on && !lib.exercises.some((e) => e.id === it.ex.id)).map((it) => it.ex.id).concat($('impTr').checked ? [] : IMP.trainings.map((t) => t.id));
+      if (skip.length) lib.settings.restoreHidden = (lib.settings.restoreHidden || []).concat(skip).slice(-5000);
+    }
+    closeImport(); saveLib(true);
+    libTab = isOld ? (nTr ? 'tr' : 'ex') : (nEx || !nTr ? 'ex' : 'tr');
+    openLibrary();
+    if (isOld) { $('restoreBar').style.display = 'none'; toast('Перенесено: тренировок — ' + nTr + ', упражнений — ' + nEx + '.'); }
+    else toast('В библиотеку добавлено: упражнений — ' + nEx + (nTr ? ', тренировок — ' + nTr : '') + '. Их можно ставить в тренировки.');
+  });
+
+  // ======================================================================
+  //  РЕДАКТОР УПРАЖНЕНИЯ
+  // ======================================================================
+  const LINE_KEYS = ['skate', 'puck', 'back', 'pass', 'shot', 'lateral', 'stop', 'plain'];
+  // Игроки: у каждой кнопки свои варианты подписи (наведите — появится выбор, как в Ice Hockey Systems).
+  // '#' — номера по порядку: каждый следующий игрок получает следующий свободный номер.
+  const SLOTS_PL = [
+    { id: 'F', kind: 'F', name: 'Нападающий', vars: [['Н'], ['#', 'По порядку: Н1, Н2…'], ['Н1'], ['Н2'], ['Н3'], ['Н4'], ['Н5'], ['ЛК', 'Левый крайний'], ['ЦН', 'Центральный'], ['ПК', 'Правый крайний']] },
+    { id: 'D', kind: 'D', name: 'Защитник', vars: [['З'], ['#', 'По порядку: З1, З2…'], ['З1'], ['З2'], ['З3'], ['З4'], ['ЛЗ', 'Левый защитник'], ['ПЗ', 'Правый защитник']] },
+    { id: 'G', kind: 'G', name: 'Вратарь', vars: [['В'], ['В1'], ['В2']] },
+    { id: 'C', kind: 'C', name: 'Тренер', vars: [['Т'], ['Т1'], ['Т2'], ['Т3']] },
+    { id: 'O', kind: 'O', name: 'Игрок', vars: [[''], ['#', 'По порядку: 1, 2…'], ['1'], ['2'], ['3'], ['4'], ['5']] },
+    { id: 'X', kind: 'X', name: 'Соперник (X)', vars: [[''], ['#', 'По порядку: 1, 2…'], ['1'], ['2'], ['3'], ['4'], ['5']] },
+    { id: 'T', kind: 'T', name: 'Соперник (треугольник)', vars: [[''], ['#', 'По порядку: 1, 2…'], ['1'], ['2'], ['3'], ['4'], ['5']] },
+  ];
+  const ITEMS = { puck: 'Шайба', pucks: 'Шайбы (кучка)', cone: 'Конус', tripod: 'Тринога', tire: 'Покрышка',
+    stick: 'Клюшка', stickL: 'Клюшка (другой хват)', bar: 'Планка / барьер', boarder: 'Бордер (мат)', dangler: 'Тренажёр для дриблинга',
+    net: 'Ворота', mininet: 'Мини-ворота',
+    marker: 'Фишка', ladder: 'Координационная лестница', pole: 'Стойка', mat: 'Мат' }; // последние четыре — только для старых упражнений
+  const SLOTS_IT = [
+    { id: 'puck', name: 'Шайбы', vars: ['puck', 'pucks'] },
+    { id: 'cone', name: 'Конусы и тринога', vars: ['cone', 'tripod', 'tire'] },
+    { id: 'stick', name: 'Клюшки и планка', vars: ['stick', 'stickL', 'bar'] },
+    { id: 'net', name: 'Ворота', vars: ['net', 'mininet'] },
+  ];
+  const slotCur = {}; SLOTS_PL.forEach((sl) => { slotCur[sl.id] = sl.vars[0][0]; }); SLOTS_IT.forEach((sl) => { slotCur[sl.id] = sl.vars[0]; });
+  const itemTool = (t) => (t.indexOf('it:') === 0 ? t.slice(3) : null);
+  const plTool = (t) => { if (t.indexOf('pl:') !== 0) return null; const [kind, label] = t.slice(3).split('|'); return { kind, label: label == null ? null : label }; };
+  const E = { ex: null, objs: [], view: 'full', tool: 'select', color: '#17171A', w: 2, sel: null, undo: [], redo: [], dirty: false, back: null, onSaved: null, svg: null, drag: null, draft: null, clip: null };
+  function toolName(t) {
+    if (t === 'select') return 'Выбор';
+    if (R.LINE_STYLES[t]) return R.LINE_STYLES[t].label;
+    const pl = plTool(t);
+    if (pl) return R.PLAYERS[pl.kind].label + (pl.label === '#' ? ' (номера по порядку)' : pl.label ? ' «' + pl.label + '»' : '');
+    if (itemTool(t)) return ITEMS[itemTool(t)];
+    return { text: 'Текст', rect: 'Зона', ellipse: 'Овал' }[t] || t;
+  }
+  const ICON_INK = '#ECECEA';
+  // «З1» в кнопках: буква обычным, номер — маленьким снизу (чтобы не читалось как «31»)
+  function labHtml(v) {
+    if (!v) return '—';
+    const m = /^(\D+?)(\d+)$/.exec(v);
+    return m ? esc(m[1]) + '<sub>' + esc(m[2]) + '</sub>' : esc(v);
+  }
+  const WITH_PUCK = { puck: 1, pass: 1, shot: 1 };
+  function miniLine(style) {
+    const puck = WITH_PUCK[style];
+    const pts = puck ? [[5.2, 8.3], [10.5, 5.2], [16.5, 3]] : [[1.5, 8.5], [9, 4.5], [16, 3]];
+    let h = R.objectMarkup({ id: 'i', type: 'line', style, pts, w: 2, color: ICON_INK });
+    // шайба в начале линии — видно, что это действие с шайбой
+    if (puck) h += '<g transform="translate(2.7 8.6)"><path d="M-2.5 0v1.15a2.5 1.05 0 0 0 5 0V0" fill="#8F939B"/><ellipse rx="2.5" ry="1.05" fill="#ECEEF1"/></g>';
+    return '<svg class="mini" viewBox="0 0 18 11">' + h + '</svg>';
+  }
+  function miniPlayer(kind, label) {
+    const o = { id: 'i', type: 'player', kind, x: 6, y: 5.2, s: 1.3 };
+    if (label === '#') o.label = R.PLAYERS[kind].letter + '1'; else if (label != null) o.label = label;
+    if (kind === 'X' || kind === 'T') o.color = ICON_INK;
+    if (kind === 'X' && o.label) o.label = ''; // у X номер рисуется над крестом — в маленьком значке не помещается
+    return '<svg class="mini sq" viewBox="1.6 0.85 8.8 8.8">' + R.objectMarkup(o) + '</svg>';
+  }
+  function miniItem(k) {
+    const big = { net: 1.25, mininet: 1.9, ladder: 0.9, stick: 1.05, stickL: 1.05, bar: 1.15, pole: 1.5, tire: 2, puck: 2.6, pucks: 2, marker: 2.3, cone: 1.9, tripod: 1.75, mat: 1.05, boarder: 1.0, dangler: 1.05 }[k] || 1.9;
+    const o = { id: 'i', type: k, x: (k === 'net' || k === 'mininet') ? 8.2 : 6, y: 5, s: big / (R.ITEM_BASE[k] || 1), ink: ICON_INK };
+    return '<svg class="mini sq" viewBox="1 0 10 10">' + R.objectMarkup(o) + '</svg>';
+  }
+  function plToolId(slot) { return 'pl:' + slot.kind + '|' + slotCur[slot.id]; }
+  function buildTools() {
+    let h = '<div class="rail-grid"><button class="tool" data-tool="select" title="Выбор и перемещение (V)">' + ico('cursor') + '</button>' +
+      '<button class="tool" data-tool="text" title="Текст (T)">' + ico('text') + '</button>' +
+      '<button class="tool" data-tool="rect" title="Зона">' + ico('rect') + '</button><button class="tool" data-tool="ellipse" title="Овал">' + ico('oval') + '</button></div>';
+    h += '<div class="rail-cap">Линии</div><div class="rail-grid">' + LINE_KEYS.map((k, i) => '<button class="tool" data-tool="' + k + '" title="' + esc(R.LINE_STYLES[k].label) + ' (' + (i + 1) + ')">' + miniLine(k) + '</button>').join('') + '</div>';
+    h += '<div class="rail-cap">Игроки</div><div class="rail-grid">' + SLOTS_PL.map((sl) =>
+      '<button class="tool has-var" data-slot="' + sl.id + '" data-tool="' + esc(plToolId(sl)) + '" title="' + esc(sl.name) + '">' + miniPlayer(sl.kind, slotCur[sl.id]) + '</button>').join('') + '</div>';
+    h += '<div class="rail-cap">Инвентарь</div><div class="rail-grid">' + SLOTS_IT.map((sl) =>
+      '<button class="tool has-var" data-slot="' + sl.id + '" data-tool="it:' + slotCur[sl.id] + '" title="' + esc(sl.name) + '">' + miniItem(slotCur[sl.id]) + '</button>').join('') + '</div>';
+    h += '<div class="rail-cap">Цвет</div><div class="rail-grid sw4">' + PALETTE.map((c) => '<button class="sw" data-color="' + c + '" style="background:' + c + '" title="Цвет"></button>').join('') + '</div>';
+    h += '<div class="rail-cap">Толщина линий</div><div class="wrow"><button class="tool" data-act="wminus" title="Тоньше">' + ico('minus') + '</button><span class="wval" id="wVal"></span><button class="tool" data-act="wplus" title="Толще">' + ico('plus') + '</button></div>';
+    $('tools').innerHTML = h;
+    $('viewSeg').innerHTML = Object.keys(R.VIEWS).filter((v) => !R.VIEWS[v].img).map((v) => '<button data-view="' + v + '">' + R.VIEWS[v].label + '</button>').join('');
+  }
+  // обновить значок кнопки после выбора варианта
+  function refreshSlot(id) {
+    const b = $('tools').querySelector('[data-slot="' + id + '"]'); if (!b) return;
+    const pl = SLOTS_PL.find((x) => x.id === id);
+    if (pl) { b.dataset.tool = plToolId(pl); b.innerHTML = miniPlayer(pl.kind, slotCur[id]); }
+    else { b.dataset.tool = 'it:' + slotCur[id]; b.innerHTML = miniItem(slotCur[id]); }
+  }
+  function updateToolUI() {
+    document.querySelectorAll('#tools [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === E.tool));
+    document.querySelectorAll('#tools [data-color]').forEach((b) => b.classList.toggle('on', b.dataset.color.toLowerCase() === String(E.color).toLowerCase()));
+    document.querySelectorAll('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.view === E.view));
+    $('viewSeg').style.display = E.ex && E.ex.bg ? 'none' : ''; // у упражнения-картинки вид один — сама картинка
+    $('wVal').textContent = E.w;
+    const t = E.tool;
+    $('rinkWrap').classList.toggle('draw', t !== 'select' && t !== 'text');
+    $('rinkWrap').classList.toggle('text', t === 'text');
+    let hint = '';
+    if (t === 'select') hint = 'Щёлкните объект, чтобы выбрать и перетащить. Уголок рамки — размер, кружок сверху — поворот.';
+    else if (R.LINE_STYLES[t]) hint = toolName(t) + ': ведите мышью по площадке. ' + (R.LINE_STYLES[t].straight ? 'Прямая линия; с Shift — плавная.' : 'Линия сглаживается; с Shift — прямая.');
+    else if (plTool(t) || itemTool(t)) hint = toolName(t) + ': щёлкните по площадке, чтобы поставить.';
+    else if (t === 'text') hint = 'Щёлкните, где поставить надпись.';
+    else hint = toolName(t) + ': растяните мышью.';
+    $('toolHint').textContent = hint;
+  }
+  function setTool(t) { E.tool = t; if (t !== 'select') select(null); updateToolUI(); }
+  $('wsActs').addEventListener('click', (e) => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'undo') undo(); else if (a.dataset.act === 'redo') redo(); else if (a.dataset.act === 'clear') clearAll();
+  });
+  $('tools').addEventListener('click', (e) => {
+    const tb = e.target.closest('[data-tool]');
+    if (tb) { setTool(tb.dataset.tool); return; }
+    const sw = e.target.closest('[data-color]');
+    if (sw) { setColor(sw.dataset.color); return; }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'wminus' || a.dataset.act === 'wplus') {
+      E.w = clamp(E.w + (a.dataset.act === 'wplus' ? 1 : -1), 1, 4);
+      const o = selObj(); if (o && o.type === 'line') { push(); o.w = E.w; renderObjs(); renderProps(); }
+      updateToolUI();
+    } else if (a.dataset.act === 'undo') undo();
+    else if (a.dataset.act === 'redo') redo();
+    else if (a.dataset.act === 'clear') clearAll();
+  });
+  // ---------- всплывающий выбор вариантов ----------
+  let flyTimer = 0, flySlot = null;
+  function showFly(btn) {
+    const id = btn.dataset.slot; flySlot = id;
+    const pl = SLOTS_PL.find((x) => x.id === id), it = SLOTS_IT.find((x) => x.id === id);
+    let h = '<div class="fly-cap">' + esc((pl || it).name) + '</div>';
+    if (pl) {
+      const words = pl.vars.filter((v) => v[1]);   // с пояснением — списком
+      const plain = pl.vars.filter((v) => !v[1]);  // просто подписи — сеткой
+      h += '<div class="fl-grid">' + plain.map((v) => '<button data-var="' + esc(v[0]) + '" class="' + (slotCur[id] === v[0] ? 'on' : '') + '" title="' + esc(v[0] || 'без подписи') + '">' + miniPlayer(pl.kind, v[0]) + '</button>').join('') + '</div>';
+      h += words.map((v) => '<button data-var="' + esc(v[0]) + '" class="' + (slotCur[id] === v[0] ? 'on' : '') + '">' + miniPlayer(pl.kind, v[0]) + '<span>' + esc(v[1]) + '</span></button>').join('');
+    } else {
+      h += it.vars.map((k) => '<button data-var="' + k + '" class="' + (slotCur[id] === k ? 'on' : '') + '">' + miniItem(k) + '<span>' + esc(ITEMS[k]) + '</span></button>').join('');
+    }
+    const f = $('fly'); f.innerHTML = h; f.classList.add('show');
+    const r = btn.getBoundingClientRect();
+    const fh = f.offsetHeight;
+    f.style.left = (r.right + 6) + 'px';
+    f.style.top = Math.max(8, Math.min(window.innerHeight - fh - 8, r.top - 8)) + 'px';
+  }
+  function hideFly() { $('fly').classList.remove('show'); flySlot = null; }
+  $('tools').addEventListener('mouseover', (e) => {
+    const b = e.target.closest('[data-slot]');
+    clearTimeout(flyTimer);
+    if (b) { if (flySlot !== b.dataset.slot) flyTimer = setTimeout(() => showFly(b), 140); }
+    else flyTimer = setTimeout(hideFly, 250);
+  });
+  $('tools').addEventListener('mouseleave', () => { clearTimeout(flyTimer); flyTimer = setTimeout(hideFly, 300); });
+  $('fly').addEventListener('mouseenter', () => clearTimeout(flyTimer));
+  $('fly').addEventListener('mouseleave', () => { clearTimeout(flyTimer); flyTimer = setTimeout(hideFly, 250); });
+  $('fly').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-var]'); if (!b || !flySlot) return;
+    const id = flySlot;
+    slotCur[id] = b.dataset.var;
+    refreshSlot(id);
+    const btn = $('tools').querySelector('[data-slot="' + id + '"]');
+    setTool(btn.dataset.tool);
+    hideFly();
+  });
+  $('viewSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]'); if (!b || b.dataset.view === E.view) return;
+    push(); E.view = b.dataset.view; renderRink(); updateToolUI();
+  });
+  function setColor(c) {
+    E.color = c;
+    const o = selObj();
+    const fixed = { puck: 1, pucks: 1, cone: 1, net: 1, mininet: 1, tire: 1, pole: 1, stick: 1, stickL: 1, tripod: 1 };
+    if (o && !fixed[o.type]) { push(); o.color = c; renderObjs(); renderProps(); }
+    updateToolUI();
+  }
+  async function clearAll() {
+    if (!E.objs.length) return;
+    if (!(await ask('Очистить площадку?', 'Все нарисованные объекты этого упражнения будут удалены. Это можно отменить кнопкой «Отменить».', [{ label: 'Отмена', value: false }, { label: 'Очистить', value: true, kind: 'danger' }]))) return;
+    push(); E.objs = []; select(null); renderObjs();
+  }
+
+  function openExercise(ex, opts) {
+    opts = opts || {};
+    E.ex = ex ? clone(ex) : { id: null, name: '', category: 'Разминка', age: 'Любой', minutes: 10, description: '', keypoints: '', view: 'full', objects: [] };
+    E.objs = E.ex.objects || []; E.view = E.ex.view || 'full';
+    E.sel = null; E.undo = []; E.redo = []; E.dirty = false; E.back = opts.back || openLibrary; E.onSaved = opts.onSaved || null; E.draft = null;
+    $('exTitle').textContent = ex ? (ex.name || 'Без названия') : 'Новое упражнение';
+    $('exName').value = E.ex.name || '';
+    fillSelect($('exCatSel'), CATS.indexOf(E.ex.category || 'Разминка') === -1 ? CATS.concat([E.ex.category]) : CATS);
+    $('exCatSel').value = E.ex.category || 'Разминка';
+    $('exAge').value = E.ex.age || 'Любой';
+    $('exMin').value = E.ex.minutes || 10;
+    $('exDesc').value = E.ex.description || '';
+    $('exKp').value = E.ex.keypoints || '';
+    showView('vEx');
+    renderRink(); updateToolUI();
+    requestAnimationFrame(fitRink);
+    if (!ex) setTimeout(() => $('exName').focus(), 50);
+  }
+  ['exName', 'exCatSel', 'exAge', 'exMin', 'exDesc', 'exKp'].forEach((id) => $(id).addEventListener('input', () => { E.dirty = true; if (id === 'exName') $('exTitle').textContent = $('exName').value || 'Новое упражнение'; }));
+  function collectEx() {
+    const ex = E.ex;
+    ex.name = $('exName').value.trim() || 'Без названия';
+    ex.category = $('exCatSel').value; ex.age = $('exAge').value;
+    ex.minutes = clamp(parseInt($('exMin').value, 10) || 10, 1, 180);
+    ex.description = $('exDesc').value; ex.keypoints = $('exKp').value;
+    ex.view = E.view; ex.objects = clone(E.objs);
+    return ex;
+  }
+  function saveExercise() {
+    const ex = collectEx();
+    const now = Date.now();
+    if (!ex.id) { ex.id = uid(); ex.created = now; ex.updated = now; lib.exercises.push(clone(ex)); }
+    else {
+      ex.updated = now;
+      const i = lib.exercises.findIndex((x) => x.id === ex.id);
+      if (i >= 0) lib.exercises[i] = clone(ex); else lib.exercises.push(clone(ex));
+    }
+    E.dirty = false;
+    $('exTitle').textContent = ex.name;
+    saveLib(true);
+    toast('Упражнение сохранено');
+    return ex;
+  }
+  // уйти из редактора: если есть изменения — спросить
+  async function leaveExercise(next) {
+    if (E.dirty) {
+      const v = await ask('Сохранить упражнение?', 'В упражнении есть несохранённые изменения.', [{ label: 'Отмена', value: 'cancel' }, { label: 'Не сохранять', value: 'drop' }, { label: 'Сохранить', value: 'save', kind: 'primary' }]);
+      if (v === 'cancel') return;
+      if (v === 'save') { const ex = saveExercise(); if (E.onSaved) { E.onSaved(ex); return; } }
+    }
+    next();
+  }
+  $('exBack').addEventListener('click', () => leaveExercise(() => E.back()));
+  $('exSave').addEventListener('click', () => {
+    const ex = saveExercise();
+    if (E.onSaved) E.onSaved(ex);
+  });
+  $('exPdf').addEventListener('click', () => {
+    const ex = collectEx();
+    openPrint(docExercises([ex]), ex.name, () => showView('vEx'), ex.name);
+  });
+  $('exPng').addEventListener('click', async () => {
+    const ex = collectEx();
+    try {
+      const dataUrl = await rinkPng(ex);
+      const r = await api.coachSavePng({ dataUrl, name: ex.name });
+      if (r && r.ok) toast('Картинка сохранена', { linkText: 'Показать', onLink: () => api.coachShowFile(r.path) });
+      else if (r && !r.canceled) toast('Не удалось сохранить: ' + (r.error || ''), { err: true });
+    } catch (err) { toast('Не удалось сделать картинку: ' + err.message, { err: true }); }
+  });
+  // упражнение -> PNG 2400 px по ширине
+  function rinkPng(ex) {
+    return new Promise((resolve, reject) => {
+      const v = R.viewFor(ex.view || 'full');
+      const W = 2400, H = Math.round(W * v.h / v.w);
+      const src = R.svg({ view: ex.view, logo: curLogo(), objects: ex.objects, width: W, height: H, uid: 'png', bg: ex.bg });
+      const url = URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' }));
+      const img = new Image();
+      img.onload = () => {
+        const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+        const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.drawImage(img, 0, 0, W, H);
+        URL.revokeObjectURL(url);
+        try { resolve(cv.toDataURL('image/png')); } catch (e) { reject(e); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('ошибка рисования')); };
+      img.src = url;
+    });
+  }
+
+  // ---------- рисование на площадке ----------
+  function renderRink() {
+    $('rinkWrap').innerHTML = R.svg({ view: E.view, logo: curLogo(), objects: E.objs, interactive: true, uid: 'ed', bg: E.ex && E.ex.bg });
+    E.svg = $('rinkWrap').querySelector('svg');
+    fitRink();
+    bindSvg();
+    renderUI();
+  }
+  // площадка целиком помещается в окно: ширина по месту, высота — сколько осталось до низа окна
+  function fitRink() {
+    if (!E.svg || !$('vEx').classList.contains('show')) return;
+    const wrap = $('rinkWrap'), v = R.viewFor(E.view), ar = v.w / v.h;
+    const avW = Math.max(200, wrap.clientWidth - 4), avH = Math.max(160, wrap.clientHeight - 4);
+    const w = Math.min(avW, avH * ar);
+    E.svg.style.width = Math.floor(w) + 'px';
+    E.svg.style.height = Math.floor(w / ar) + 'px';
+    renderUI();
+  }
+  window.addEventListener('resize', fitRink);
+  function renderObjs() {
+    if (!E.svg) return;
+    E.svg.querySelector('.objs').innerHTML = R.layered(E.objs).map((o) => R.objectMarkup(o, { interactive: true })).join('') + (E.draft ? R.objectMarkup(E.draft) : '');
+    renderUI();
+  }
+  function selObj() { return E.sel ? E.objs.find((o) => o.id === E.sel) || null : null; }
+  function select(id) { E.sel = id; renderUI(); renderProps(); }
+  function pxToUnits() { const v = R.viewFor(E.view); return v.w / Math.max(1, E.svg.clientWidth); }
+  function bboxOf(id) {
+    const g = E.svg && E.svg.querySelector('.objs [data-id="' + CSS.escape(id) + '"]');
+    if (!g) return null;
+    try { const b = g.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; } catch (e) { return null; }
+  }
+  const ROTATABLE = { zone: 1, text: 1, net: 1, mininet: 1, cone: 1, line: 1, stick: 1, stickL: 1, bar: 1, ladder: 1, pole: 1, mat: 1, tripod: 1, boarder: 1, dangler: 1 };
+  function canRotate(o) { return !!ROTATABLE[o.type] || (o.type === 'player' && (o.kind === 'T' || o.kind === 'X')); }
+  function renderUI() {
+    if (!E.svg) return;
+    const ui = E.svg.querySelector('.ui'); if (!ui) return;
+    const o = selObj();
+    if (!o) { ui.innerHTML = ''; return; }
+    const b = bboxOf(o.id); if (!b) { ui.innerHTML = ''; return; }
+    const k = pxToUnits(), pad = 5 * k, hs = 10 * k;
+    let h = '<rect x="' + (b.x - pad) + '" y="' + (b.y - pad) + '" width="' + (b.w + pad * 2) + '" height="' + (b.h + pad * 2) + '" fill="none" stroke="#E3343C" stroke-width="' + (1.4 * k) + '" stroke-dasharray="' + (5 * k) + ' ' + (3 * k) + '" pointer-events="none"/>';
+    h += '<rect data-h="resize" x="' + (b.x + b.w + pad - hs / 2) + '" y="' + (b.y + b.h + pad - hs / 2) + '" width="' + hs + '" height="' + hs + '" fill="#fff" stroke="#E3343C" stroke-width="' + (2 * k) + '" style="cursor:nwse-resize"/>';
+    if (canRotate(o)) {
+      const cx = b.x + b.w / 2, ty = b.y - pad - 20 * k;
+      h += '<path d="M' + cx + ' ' + (b.y - pad) + 'V' + (ty + 6 * k) + '" stroke="#E3343C" stroke-width="' + (1.4 * k) + '" pointer-events="none"/>';
+      h += '<circle data-h="rotate" cx="' + cx + '" cy="' + ty + '" r="' + (6 * k) + '" fill="#fff" stroke="#E3343C" stroke-width="' + (2 * k) + '" style="cursor:grab"/>';
+    }
+    ui.innerHTML = h;
+  }
+  function svgPt(e) {
+    const p = E.svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    const q = p.matrixTransform(E.svg.getScreenCTM().inverse());
+    return { x: q.x, y: q.y };
+  }
+  function push() { E.undo.push(JSON.stringify({ objs: E.objs, view: E.view })); if (E.undo.length > 150) E.undo.shift(); E.redo = []; E.dirty = true; }
+  function undo() { if (!E.undo.length) return; E.redo.push(JSON.stringify({ objs: E.objs, view: E.view })); restore(E.undo.pop()); }
+  function redo() { if (!E.redo.length) return; E.undo.push(JSON.stringify({ objs: E.objs, view: E.view })); restore(E.redo.pop()); }
+  function restore(js) {
+    const d = JSON.parse(js); const viewChanged = d.view !== E.view;
+    E.objs = d.objs; E.view = d.view; E.dirty = true;
+    if (E.sel && !selObj()) E.sel = null;
+    if (viewChanged) renderRink(); else renderObjs();
+    renderProps(); updateToolUI();
+  }
+  function moveObj(o, o0, dx, dy) {
+    if (o.type === 'line') o.pts = o0.pts.map((p) => [p[0] + dx, p[1] + dy]);
+    else { o.x = o0.x + dx; o.y = o0.y + dy; }
+  }
+  function nextLabel(kind) {
+    const L = R.PLAYERS[kind].letter;
+    let n = 1;
+    const used = new Set(E.objs.filter((o) => o.type === 'player' && o.kind === kind).map((o) => o.label));
+    while (used.has(L + n)) n++;
+    return L + n;
+  }
+  function bindSvg() {
+    const svg = E.svg;
+    svg.addEventListener('pointerdown', onDown);
+  }
+  function onDown(e) {
+    if (e.button !== 0) return;
+    const svg = E.svg;
+    const p = svgPt(e), t = E.tool;
+    const handle = e.target.closest('[data-h]');
+    e.preventDefault();
+    if (handle && selObj()) {
+      const o = selObj(), b = bboxOf(o.id), dirty0 = E.dirty;
+      push();
+      E.drag = { mode: handle.dataset.h, o, o0: clone(o), p0: p, c: { x: b.x + b.w / 2, y: b.y + b.h / 2 }, moved: false, dirty0 };
+      svg.setPointerCapture(e.pointerId);
+      return;
+    }
+    if (t === 'select') {
+      const g = e.target.closest('.obj');
+      if (g) {
+        const o = E.objs.find((x) => x.id === g.dataset.id);
+        // двойной щелчок (считаем сами: после первого щелчка объект перерисовывается)
+        const now = performance.now();
+        if (E.lastDown && E.lastDown.id === o.id && now - E.lastDown.t < 450) {
+          E.lastDown = null;
+          if (o.type === 'text') { select(o.id); editText(o); return; }
+          if (o.type === 'player') { select(o.id); editLabel(o); return; }
+        }
+        E.lastDown = { id: o.id, t: now };
+        const dirty0 = E.dirty;
+        select(o.id); push();
+        E.drag = { mode: 'move', o, o0: clone(o), p0: p, moved: false, dirty0 };
+        svg.setPointerCapture(e.pointerId);
+      } else select(null);
+      return;
+    }
+    if (R.LINE_STYLES[t]) {
+      const def = R.LINE_STYLES[t].straight;
+      E.draft = { id: 'draft', type: 'line', style: t, pts: [[p.x, p.y]], color: E.color, w: E.w, straight: e.shiftKey ? !def : def };
+      E.drag = { mode: 'line' };
+      svg.setPointerCapture(e.pointerId);
+      return;
+    }
+    if (plTool(t) || itemTool(t)) {
+      push();
+      let o;
+      const pl = plTool(t);
+      if (pl) {
+        const kind = pl.kind;
+        o = { id: uid(), type: 'player', kind, x: p.x, y: p.y };
+        const lb = pl.label === '#' ? nextLabel(kind) : pl.label;
+        if (lb != null && lb !== R.PLAYERS[kind].letter) o.label = lb;
+        if ((kind === 'X' || kind === 'T') && E.color !== '#17171A') o.color = E.color;
+      } else {
+        const it = itemTool(t);
+        o = { id: uid(), type: it, x: p.x, y: p.y, rot: (it === 'net' || it === 'mininet') ? (p.x > 100 ? 180 : 0) : 0 };
+        if ((it === 'boarder' || it === 'dangler' || it === 'bar') && E.color !== '#17171A') o.color = E.color;
+      }
+      E.objs.push(o); E.sel = o.id;
+      E.drag = { mode: 'move', o, o0: clone(o), p0: p, moved: true };
+      svg.setPointerCapture(e.pointerId);
+      renderObjs(); renderProps();
+      return;
+    }
+    if (t === 'text') { addText(p); return; }
+    if (t === 'rect' || t === 'ellipse') {
+      E.draft = { id: 'draft', type: 'zone', shape: t, x: p.x, y: p.y, w: 0, h: 0, color: E.color === '#17171A' ? '#E3343C' : E.color };
+      E.drag = { mode: 'zone', p0: p };
+      svg.setPointerCapture(e.pointerId);
+    }
+  }
+  window.addEventListener('pointermove', (e) => {
+    const d = E.drag; if (!d || !E.svg) return;
+    const p = svgPt(e);
+    if (d.mode === 'line') {
+      const pts = E.draft.pts, last = pts[pts.length - 1];
+      if (Math.hypot(p.x - last[0], p.y - last[1]) >= 0.35) pts.push([p.x, p.y]);
+      renderObjs(); return;
+    }
+    if (d.mode === 'zone') {
+      const z = E.draft;
+      z.x = Math.min(d.p0.x, p.x); z.y = Math.min(d.p0.y, p.y); z.w = Math.abs(p.x - d.p0.x); z.h = Math.abs(p.y - d.p0.y);
+      renderObjs(); return;
+    }
+    const o = d.o, o0 = d.o0;
+    if (d.mode === 'move') {
+      const dx = p.x - d.p0.x, dy = p.y - d.p0.y;
+      if (Math.abs(dx) + Math.abs(dy) > 0.05) d.moved = true;
+      moveObj(o, o0, dx, dy);
+    } else if (d.mode === 'resize') {
+      d.moved = true;
+      if (o.type === 'zone') { o.w = Math.max(1, p.x - o0.x); o.h = Math.max(1, p.y - o0.y); }
+      else {
+        const r0 = Math.hypot(d.p0.x - d.c.x, d.p0.y - d.c.y) || 1, r1 = Math.hypot(p.x - d.c.x, p.y - d.c.y);
+        const k = r1 / r0;
+        if (o.type === 'text') o.size = clamp((o0.size || 3) * k, 1.2, 16);
+        else if (o.type === 'line') o.pts = o0.pts.map((q) => [d.c.x + (q[0] - d.c.x) * k, d.c.y + (q[1] - d.c.y) * k]);
+        else o.s = clamp((o0.s || 1) * k, 0.4, 4);
+      }
+    } else if (d.mode === 'rotate') {
+      d.moved = true;
+      let a = Math.atan2(p.y - d.c.y, p.x - d.c.x) * 180 / Math.PI + 90;
+      if (!e.altKey) a = Math.round(a / 15) * 15;
+      if (o.type === 'line') {
+        const a0 = Math.atan2(d.p0.y - d.c.y, d.p0.x - d.c.x) * 180 / Math.PI + 90;
+        let da = a - (e.altKey ? a0 : Math.round(a0 / 15) * 15);
+        const r = da * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r);
+        o.pts = o0.pts.map((q) => [d.c.x + (q[0] - d.c.x) * cs - (q[1] - d.c.y) * sn, d.c.y + (q[0] - d.c.x) * sn + (q[1] - d.c.y) * cs]);
+      } else o.rot = ((a % 360) + 360) % 360;
+    }
+    renderObjs();
+  });
+  window.addEventListener('pointerup', (e) => {
+    const d = E.drag; if (!d) return;
+    E.drag = null;
+    try { E.svg.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (d.mode === 'line') {
+      const dr = E.draft; E.draft = null;
+      let pts = dr.pts;
+      const len = pts.reduce((a, q, i) => a + (i ? Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]) : 0), 0);
+      if (len < 1.5) { renderObjs(); return; }
+      pts = dr.straight ? [pts[0], pts[pts.length - 1]] : R.simplify(pts, 0.45);
+      if (pts.length < 2) pts = [dr.pts[0], dr.pts[dr.pts.length - 1]];
+      push();
+      const o = { id: uid(), type: 'line', style: dr.style, pts: pts.map((q) => [Math.round(q[0] * 100) / 100, Math.round(q[1] * 100) / 100]), color: dr.color, w: dr.w };
+      if (dr.straight) o.straight = true;
+      E.objs.push(o);
+      renderObjs(); return;
+    }
+    if (d.mode === 'zone') {
+      const z = E.draft; E.draft = null;
+      if (z.w < 2 || z.h < 2) { z.w = 20; z.h = 12; z.x -= 10; z.y -= 6; }
+      push();
+      z.id = uid(); E.objs.push(z); E.sel = z.id; E.tool = 'select';
+      renderObjs(); renderProps(); updateToolUI(); return;
+    }
+    if (!d.moved) { E.undo.pop(); E.dirty = !!d.dirty0; return; }
+    renderObjs(); renderProps();
+  });
+
+  // ---------- надписи ----------
+  function overlayInput(p, value, fontPx, multiline, onDone) {
+    const wrap = $('rinkWrap');
+    const box = E.svg.getBoundingClientRect(), wb = wrap.getBoundingClientRect();
+    const ctm = E.svg.getScreenCTM();
+    const sx = p.x * ctm.a + ctm.e, sy = p.y * ctm.d + ctm.f;
+    const el = document.createElement(multiline ? 'textarea' : 'input');
+    el.className = 'txt-ed'; el.value = value || '';
+    el.style.left = (sx - wb.left) + 'px'; el.style.top = (sy - wb.top) + 'px';
+    el.style.fontSize = Math.max(12, fontPx) + 'px';
+    if (multiline) el.rows = Math.max(1, String(value || '').split('\n').length);
+    wrap.appendChild(el);
+    el.focus(); el.select();
+    let done = false;
+    const finish = (ok) => { if (done) return; done = true; const v = el.value; el.remove(); onDone(ok ? v : null); };
+    el.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') finish(false);
+      else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
+    });
+    el.addEventListener('input', () => { if (multiline) el.rows = Math.max(1, el.value.split('\n').length); });
+    el.addEventListener('blur', () => finish(true));
+    void box;
+  }
+  function unitsToPx(u) { return u / pxToUnits(); }
+  function addText(p) {
+    overlayInput(p, '', unitsToPx(3), true, (v) => {
+      if (!v || !v.trim()) return;
+      push();
+      const o = { id: uid(), type: 'text', x: p.x, y: p.y, text: v, size: 3, color: E.color };
+      E.objs.push(o); E.sel = o.id; renderObjs(); renderProps();
+    });
+  }
+  function editText(o) {
+    overlayInput({ x: o.x, y: o.y }, o.text, unitsToPx(o.size || 3), true, (v) => {
+      if (v == null) return;
+      push();
+      if (!v.trim()) { E.objs = E.objs.filter((x) => x !== o); E.sel = null; } else o.text = v;
+      renderObjs(); renderProps();
+    });
+  }
+  function editLabel(o) {
+    const L = o.label != null ? o.label : R.PLAYERS[o.kind].letter;
+    overlayInput({ x: o.x - 2.4, y: o.y - 1.6 }, L, unitsToPx(2.4), false, (v) => {
+      if (v == null) return;
+      push(); o.label = v.trim().slice(0, 4); renderObjs(); renderProps();
+    });
+  }
+
+  // ---------- свойства выбранного ----------
+  function renderProps() {
+    const box = $('props'), o = selObj();
+    box.classList.toggle('show', !!o);
+    if (!o) { box.innerHTML = ''; return; }
+    let name = o.type === 'line' ? R.LINE_STYLES[o.style].label : o.type === 'player' ? R.PLAYERS[o.kind].label : o.type === 'text' ? 'Текст' : o.type === 'zone' ? (o.shape === 'ellipse' ? 'Овал' : 'Зона') : ITEMS[o.type];
+    let h = '<div class="ph"><span>' + esc(name) + '</span><span class="row"><button class="btn sm icon" data-p="front" title="На передний план">' + ico('front') + '</button>' +
+      '<button class="btn sm icon" data-p="dup" title="Копия (Ctrl+D)">' + ico('copy') + '</button><button class="btn sm icon danger" data-p="del" title="Удалить (Del)">' + ico('trash') + '</button></span></div>';
+    if (o.type === 'line') {
+      h += '<div class="fld"><span class="cap">Тип линии</span><select class="sel" data-p="style">' + LINE_KEYS.map((k) => '<option value="' + k + '"' + (k === o.style ? ' selected' : '') + '>' + R.LINE_STYLES[k].label + '</option>').join('') + '</select></div>';
+      const arrow = o.arrow != null ? o.arrow : R.LINE_STYLES[o.style].arrow;
+      h += '<div class="row"><div class="seg"><button data-p="arrow" data-v="1" class="' + (arrow ? 'on' : '') + '">Со стрелкой</button><button data-p="arrow" data-v="0" class="' + (!arrow ? 'on' : '') + '">Без</button></div>' +
+        '<div class="seg"><button data-p="straight" data-v="0" class="' + (!o.straight ? 'on' : '') + '">Плавная</button><button data-p="straight" data-v="1" class="' + (o.straight ? 'on' : '') + '">Прямая</button></div></div>';
+    }
+    if (o.type === 'player') {
+      const cur = o.label != null ? o.label : R.PLAYERS[o.kind].letter;
+      const sl = SLOTS_PL.find((x) => x.kind === o.kind);
+      const opts = sl ? sl.vars.map((v) => v[0]).filter((v) => v !== '#') : [];
+      h += '<div class="fld"><span class="cap">Подпись</span><div class="chips">' + opts.map((v) => '<button class="chip' + (v === cur ? ' on' : '') + '" data-p="lab" data-v="' + esc(v) + '">' + labHtml(v) + '</button>').join('') + '</div>' +
+        '<input class="inp" data-p="label" maxlength="4" value="' + esc(cur) + '" placeholder="Своя подпись" /></div>';
+    }
+    if (o.type === 'text') h += '<label class="fld"><span class="cap">Текст</span><textarea class="ta" data-p="text" rows="2" style="min-height:52px">' + esc(o.text) + '</textarea></label>';
+    if (o.type === 'zone') h += '<div class="seg"><button data-p="fill" data-v="1" class="' + (o.fill !== false ? 'on' : '') + '">Заливка</button><button data-p="fill" data-v="0" class="' + (o.fill === false ? 'on' : '') + '">Только контур</button></div>';
+    h += '<div class="hint">Цвет и толщину меняйте на панели слева.</div>';
+    box.innerHTML = h;
+  }
+  $('props').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-p]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT' || b.tagName === 'TEXTAREA') return;
+    const o = selObj(); if (!o) return;
+    const a = b.dataset.p;
+    if (a === 'del') { delSel(); return; }
+    if (a === 'dup') { dupSel(); return; }
+    push();
+    if (a === 'front') { E.objs = E.objs.filter((x) => x !== o).concat([o]); }
+    else if (a === 'arrow') o.arrow = b.dataset.v === '1';
+    else if (a === 'straight') { if (b.dataset.v === '1') o.straight = true; else delete o.straight; }
+    else if (a === 'fill') { if (b.dataset.v === '1') delete o.fill; else o.fill = false; }
+    else if (a === 'lab') { if (b.dataset.v === R.PLAYERS[o.kind].letter) delete o.label; else o.label = b.dataset.v; }
+    renderObjs(); renderProps();
+  });
+  let propEditing = false;
+  $('props').addEventListener('input', (e) => {
+    const el = e.target.closest('[data-p]'); const o = selObj(); if (!el || !o) return;
+    if (!propEditing) { push(); propEditing = true; }
+    if (el.dataset.p === 'style') { o.style = el.value; delete o.arrow; propEditing = false; renderObjs(); renderProps(); return; }
+    if (el.dataset.p === 'label') o.label = el.value.trim();
+    if (el.dataset.p === 'text') o.text = el.value;
+    renderObjs();
+  });
+  $('props').addEventListener('focusout', () => { propEditing = false; });
+  function delSel() { const o = selObj(); if (!o) return; push(); E.objs = E.objs.filter((x) => x !== o); E.sel = null; renderObjs(); renderProps(); }
+  function dupSel() {
+    const o = selObj(); if (!o) return; push();
+    const c = clone(o); c.id = uid(); moveObj(c, o, 3, 3);
+    E.objs.push(c); E.sel = c.id; renderObjs(); renderProps();
+  }
+
+  // клавиши редактора
+  document.addEventListener('keydown', (e) => {
+    if (document.querySelector('.modal-bg.show')) { if (e.key === 'Escape') { const m = document.querySelector('.modal-bg.show'); if (m.id === 'pickDlg') closePicker(); else if (m.id === 'logoDlg') closeLogo(); } return; }
+    if (!$('vEx').classList.contains('show')) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') { if (e.key === 'Escape') e.target.blur(); return; }
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+    if (ctrl && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+    if (ctrl && e.code === 'KeyD') { e.preventDefault(); dupSel(); return; }
+    if (ctrl && e.code === 'KeyS') { e.preventDefault(); $('exSave').click(); return; }
+    if (ctrl && e.code === 'KeyC') { const o = selObj(); if (o) E.clip = clone(o); return; }
+    if (ctrl && e.code === 'KeyV') { if (E.clip) { push(); const c = clone(E.clip); c.id = uid(); moveObj(c, E.clip, 3, 3); E.clip = clone(c); E.objs.push(c); E.sel = c.id; renderObjs(); renderProps(); } return; }
+    if (ctrl) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); delSel(); return; }
+    if (e.key === 'Escape') { if (E.sel) select(null); else { E.tool = 'select'; updateToolUI(); } return; }
+    if (e.key.indexOf('Arrow') === 0) {
+      const o = selObj(); if (!o) return; e.preventDefault();
+      const st = e.shiftKey ? 2 : 0.5, dx = e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0, dy = e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0;
+      push(); moveObj(o, clone(o), dx, dy); renderObjs(); return;
+    }
+    if (e.code === 'KeyV') { E.tool = 'select'; updateToolUI(); return; }
+    if (e.code === 'KeyT') { E.tool = 'text'; select(null); updateToolUI(); return; }
+    const n = /^Digit([1-8])$/.exec(e.code);
+    if (n) { E.tool = LINE_KEYS[+n[1] - 1]; select(null); updateToolUI(); }
+  });
+
+  // ======================================================================
+  //  ТРЕНИРОВКА
+  // ======================================================================
+  const T = { tr: null, dirty: false };
+  function openTraining(tr) {
+    T.tr = tr ? clone(tr) : { id: null, name: '', team: '', date: todayStr(), time: '', topic: '', place: '', items: [], notes: '' };
+    T.dirty = false;
+    fillTraining();
+    showView('vTr');
+    if (!tr) setTimeout(() => $('trName').focus(), 50);
+  }
+  function fillTraining() {
+    const t = T.tr;
+    $('trTitle').textContent = t.name || (t.id ? 'Без названия' : 'Новая тренировка');
+    $('trName').value = t.name || ''; $('trTeam').value = t.team || ''; $('trDate').value = t.date || ''; $('trTime').value = t.time || '';
+    $('trTopic').value = t.topic || ''; $('trPlace').value = t.place || ''; $('trNotes').value = t.notes || '';
+    const teams = Array.from(new Set(lib.trainings.map((x) => x.team).filter(Boolean)));
+    $('teamList').innerHTML = teams.map((x) => '<option value="' + esc(x) + '">').join('');
+    renderItems();
+  }
+  function readTraining() {
+    const t = T.tr;
+    t.name = $('trName').value.trim(); t.team = $('trTeam').value.trim(); t.date = $('trDate').value; t.time = $('trTime').value;
+    t.topic = $('trTopic').value.trim(); t.place = $('trPlace').value.trim(); t.notes = $('trNotes').value;
+    return t;
+  }
+  ['trName', 'trTeam', 'trDate', 'trTime', 'trTopic', 'trPlace', 'trNotes'].forEach((id) => $(id).addEventListener('input', () => {
+    T.dirty = true; if (id === 'trName') $('trTitle').textContent = $('trName').value || 'Новая тренировка';
+  }));
+  function renderItems() {
+    const t = T.tr, box = $('trItems');
+    $('trTotal').textContent = trMinutes(t) + ' мин';
+    if (!t.items.length) { box.innerHTML = '<div class="empty">Добавьте упражнения из библиотеки или нарисуйте новое.</div>'; return; }
+    box.innerHTML = t.items.map((it, i) => {
+      const ex = exById(it.exId);
+      if (!ex) return '<div class="it" data-i="' + i + '"><div class="num">' + (i + 1) + '</div><div></div><div class="nm">Упражнение удалено</div><div class="ctl"><button class="btn sm icon danger" data-a="rm">' + ico('x') + '</button></div></div>';
+      return '<div class="it" data-i="' + i + '"><div class="num">' + (i + 1) + '</div><div class="pic" data-a="edit" title="Открыть упражнение">' + exThumb(ex) + '</div>' +
+        '<div style="min-width:0"><div class="nm">' + esc(ex.name) + '</div><div class="mt">' + esc(ex.category || '') + '</div><div class="ds">' + esc(ex.description || '') + '</div></div>' +
+        '<div class="ctl"><input class="inp min" type="number" min="1" max="180" data-a="min" value="' + (it.minutes || ex.minutes || 10) + '"/><span class="hint">мин</span>' +
+        '<button class="btn sm icon" data-a="up" title="Выше"' + (i === 0 ? ' disabled' : '') + '>' + ico('up') + '</button>' +
+        '<button class="btn sm icon" data-a="down" title="Ниже"' + (i === t.items.length - 1 ? ' disabled' : '') + '>' + ico('down') + '</button>' +
+        '<button class="btn sm icon" data-a="edit" title="Изменить упражнение">' + ico('edit') + '</button>' +
+        '<button class="btn sm icon danger" data-a="rm" title="Убрать из тренировки">' + ico('x') + '</button></div></div>';
+    }).join('');
+  }
+  $('trItems').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-a]'); if (!b || b.dataset.a === 'min') return;
+    const i = +e.target.closest('[data-i]').dataset.i, items = T.tr.items;
+    if (b.dataset.a === 'up' && i > 0) { [items[i - 1], items[i]] = [items[i], items[i - 1]]; }
+    else if (b.dataset.a === 'down' && i < items.length - 1) { [items[i + 1], items[i]] = [items[i], items[i + 1]]; }
+    else if (b.dataset.a === 'rm') items.splice(i, 1);
+    else if (b.dataset.a === 'edit') {
+      const ex = exById(items[i].exId); if (!ex) return;
+      readTraining();
+      openExercise(ex, { back: () => { showView('vTr'); renderItems(); }, onSaved: () => { showView('vTr'); renderItems(); } });
+      return;
+    } else return;
+    T.dirty = true; renderItems();
+  });
+  $('trItems').addEventListener('input', (e) => {
+    const el = e.target.closest('[data-a="min"]'); if (!el) return;
+    const i = +e.target.closest('[data-i]').dataset.i;
+    T.tr.items[i].minutes = clamp(parseInt(el.value, 10) || 0, 0, 300);
+    T.dirty = true; $('trTotal').textContent = trMinutes(T.tr) + ' мин';
+  });
+  function saveTraining() {
+    const t = readTraining();
+    if (!t.name) { t.name = 'Тренировка' + (t.date ? ' ' + t.date.split('-').reverse().join('.') : ''); $('trName').value = t.name; }
+    const now = Date.now();
+    if (!t.id) { t.id = uid(); t.created = now; }
+    t.updated = now;
+    const i = lib.trainings.findIndex((x) => x.id === t.id);
+    if (i >= 0) lib.trainings[i] = clone(t); else lib.trainings.push(clone(t));
+    T.dirty = false; $('trTitle').textContent = t.name;
+    saveLib(true); toast('Тренировка сохранена');
+  }
+  $('trSave').addEventListener('click', saveTraining);
+  $('trBack').addEventListener('click', async () => {
+    if (T.dirty) {
+      const v = await ask('Сохранить тренировку?', 'В тренировке есть несохранённые изменения.', [{ label: 'Отмена', value: 'cancel' }, { label: 'Не сохранять', value: 'drop' }, { label: 'Сохранить', value: 'save', kind: 'primary' }]);
+      if (v === 'cancel') return;
+      if (v === 'save') saveTraining();
+    }
+    openLibrary();
+  });
+  $('trPrint').addEventListener('click', () => {
+    const t = readTraining();
+    openPrint(docTrainings([t]), t.name || 'Тренировка', () => { showView('vTr'); }, t.name);
+  });
+  $('trExport').addEventListener('click', () => {
+    const t = clone(readTraining()); if (!t.id) t.id = uid();
+    exportPack([t], (t.items || []).map((it) => exById(it.exId)).filter(Boolean), t.name || 'Тренировка');
+  });
+  $('trAddNew').addEventListener('click', () => {
+    readTraining();
+    openExercise(null, {
+      back: () => showView('vTr'),
+      onSaved: (ex) => { T.tr.items.push({ exId: ex.id, minutes: ex.minutes }); T.dirty = true; showView('vTr'); renderItems(); },
+    });
+  });
+
+  // ---------- выбор упражнений из библиотеки ----------
+  const pickSel = new Set();
+  $('trAddLib').addEventListener('click', () => {
+    pickSel.clear(); $('pickSearch').value = ''; fillSelect($('pickCat'), allCats(), 'Все категории'); $('pickCat').value = '';
+    renderPicker(); $('pickDlg').classList.add('show');
+    setTimeout(() => $('pickSearch').focus(), 40);
+  });
+  function renderPicker() {
+    const q = $('pickSearch').value.trim().toLowerCase(), cat = $('pickCat').value;
+    const list = lib.exercises.filter((e) => (!q || (e.name || '').toLowerCase().indexOf(q) !== -1) && (!cat || e.category === cat)).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    $('pickGrid').innerHTML = list.length ? list.map((e) =>
+      '<div class="pick' + (pickSel.has(e.id) ? ' on' : '') + '" data-id="' + e.id + '"><div class="pic">' + exThumb(e) + '</div><div class="body"><div class="nm">' + esc(e.name) + '</div>' +
+      '<div class="mt">' + esc(e.category || '') + ' · ' + (e.minutes || 0) + ' мин</div>' +
+      '<button class="btn sm' + (pickSel.has(e.id) ? ' primary' : '') + '" style="align-self:flex-start;margin-top:6px">' + (pickSel.has(e.id) ? ico('check') + 'Выбрано' : ico('plus') + 'Выбрать') + '</button></div></div>'
+    ).join('') : '<div class="empty" style="grid-column:1/-1">Нет упражнений. Закройте окно и нажмите «Нарисовать новое».</div>';
+    $('pickInfo').textContent = pickSel.size ? 'Выбрано: ' + pickSel.size : '';
+    $('pickOk').disabled = !pickSel.size;
+  }
+  $('pickGrid').addEventListener('click', (e) => {
+    const c = e.target.closest('.pick'); if (!c) return;
+    if (pickSel.has(c.dataset.id)) pickSel.delete(c.dataset.id); else pickSel.add(c.dataset.id);
+    renderPicker();
+  });
+  $('pickSearch').addEventListener('input', renderPicker);
+  $('pickCat').addEventListener('change', renderPicker);
+  function closePicker() { $('pickDlg').classList.remove('show'); }
+  $('pickCancel').addEventListener('click', closePicker);
+  $('pickOk').addEventListener('click', () => {
+    // в том порядке, в каком отмечали
+    Array.from(pickSel).forEach((id) => { const ex = exById(id); if (ex) T.tr.items.push({ exId: id, minutes: ex.minutes || 10 }); });
+    T.dirty = true; closePicker(); renderItems();
+  });
+
+  // ======================================================================
+  //  ПЕЧАТЬ
+  // ======================================================================
+  const P = { back: null, name: '' };
+  function openPrint(html, title, back, name) {
+    P.back = back; P.name = name || title;
+    $('pvTitle').textContent = title;
+    $('printRoot').innerHTML = html;
+    showView('vPrint');
+    $('selBar').classList.remove('show');
+  }
+  $('pvBack').addEventListener('click', () => P.back && P.back());
+  $('pvPrint').addEventListener('click', async () => {
+    let r;
+    try { r = await api.coachPrint({ html: $('printRoot').innerHTML, name: P.name }); } catch (e) { r = { ok: false, error: e.message }; }
+    if (r && !r.ok && r.error) toast('Не удалось напечатать: ' + r.error, { err: true });
+  });
+  $('pvPdf').addEventListener('click', async () => {
+    // только сохранение файла: окно «Сохранить как» → PDF на диск. Системную печать эта кнопка не открывает никогда.
+    const btn = $('pvPdf');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    let r;
+    try { r = await api.coachPdf({ name: P.name, html: $('printRoot').innerHTML }); } catch (e) { r = { ok: false, error: e.message }; }
+    finally { btn.disabled = false; }
+    if (r && r.ok) toast('PDF сохранён', { linkText: 'Показать', onLink: () => api.coachShowFile(r.path) });
+    else if (r && !r.canceled) toast('Не удалось сохранить PDF: ' + (r.error || ''), { err: true });
+  });
+  let printSeq = 0;
+  function docHead(kicker, title) {
+    const lg = curLogo(), club = lib.settings.club || '';
+    let logo = '';
+    if (lg && lg.data) logo = lg.bg === 'dark' ? '<div class="d-logo-box"><img src="' + lg.data + '"/></div>' : '<img class="d-logo" src="' + lg.data + '"/>';
+    return '<div class="d-head">' + logo + '<div style="min-width:0"><div class="d-kicker">' + esc([club, kicker].filter(Boolean).join(' · ')) + '</div><div class="d-title">' + esc(title) + '</div></div></div>';
+  }
+  function docFoot() {
+    const coach = lib.settings.coach || '';
+    return '<div class="d-foot"><span>' + (coach ? 'Тренер: ' + esc(coach) : '') + '</span><span>xVision · Тренерская</span></div>';
+  }
+  // ширина площадки в печати: широкая — во всю колонку, узкие виды (половина, зона) — по высоте
+  function rinkMm(view, maxW, maxH) { const v = R.viewFor(view || 'full'); return Math.round(Math.min(maxW, maxH * v.w / v.h) * 10) / 10; }
+  function exBlock(ex, n, minutes) {
+    const hasText = (ex.description || '').trim() || (ex.keypoints || '').trim();
+    const rink = R.svg({ view: ex.view || 'full', logo: curLogo(), objects: ex.objects || [], uid: 'p' + (++printSeq), bg: ex.bg })
+      .replace('<svg ', '<svg style="width:' + rinkMm(ex.view, hasText ? 110 : 186, 66) + 'mm" ');
+    return '<div class="pex"><div class="pex-h">' + (n ? '<span class="pex-n">' + n + '</span>' : '') + '<b>' + esc(ex.name || 'Без названия') + '</b><span class="pex-cat">' + esc(ex.category || '') + '</span>' +
+      '<span class="pex-min">' + (minutes || ex.minutes || 0) + ' мин</span></div>' +
+      '<div class="pex-b' + (hasText ? '' : ' solo') + '"><div class="pex-rink">' + rink + '</div>' + (hasText ? '<div class="pex-t">' +
+        (ex.description ? '<div class="pex-desc">' + esc(ex.description) + '</div>' : '') +
+        (ex.keypoints ? '<div class="pex-kp"><div class="c">Ключевые моменты</div>' + esc(ex.keypoints) + '</div>' : '') + '</div>' : '') + '</div></div>';
+  }
+  function docTrainings(list) {
+    return list.map((t) => {
+      const items = (t.items || []).map((it) => ({ it, ex: exById(it.exId) })).filter((x) => x.ex);
+      const meta = [];
+      if (t.date) meta.push('<span><i>Дата</i><b>' + esc(longDate(t.date)) + '</b></span>');
+      if (t.time) meta.push('<span><i>Время</i><b>' + esc(t.time) + '</b></span>');
+      meta.push('<span><i>Длительность</i><b>' + trMinutes(t) + ' мин</b></span>');
+      if (t.team) meta.push('<span><i>Команда</i><b>' + esc(t.team) + '</b></span>');
+      if (t.place) meta.push('<span><i>Место</i><b>' + esc(t.place) + '</b></span>');
+      return '<div class="sheet">' + docHead('План тренировки', t.name || 'Тренировка') +
+        '<div class="d-meta">' + meta.join('') + '</div>' +
+        (t.topic ? '<div class="d-topic"><b>Тема:</b> ' + esc(t.topic) + '</div>' : '') +
+        (items.length ? items.map((x, i) => exBlock(x.ex, i + 1, x.it.minutes)).join('') : '<p>В тренировке пока нет упражнений.</p>') +
+        (t.notes ? '<div class="d-notes"><div class="c">Заметки</div>' + esc(t.notes) + '</div>' : '') + docFoot() + '</div>';
+    }).join('');
+  }
+  function docExercises(list) {
+    return list.map((ex) => {
+      const rink = R.svg({ view: ex.view || 'full', logo: curLogo(), objects: ex.objects || [], uid: 'p' + (++printSeq), bg: ex.bg })
+        .replace('<svg ', '<svg style="width:' + rinkMm(ex.view, 186, 135) + 'mm" ');
+      const meta = ['<span><i>Категория</i><b>' + esc(ex.category || '—') + '</b></span>', '<span><i>Время</i><b>' + (ex.minutes || 0) + ' мин</b></span>'];
+      if (ex.age && ex.age !== 'Любой') meta.push('<span><i>Возраст</i><b>' + esc(ex.age) + '</b></span>');
+      return '<div class="sheet exsheet">' + docHead('Карточка упражнения', ex.name || 'Упражнение') + '<div class="d-meta">' + meta.join('') + '</div>' +
+        '<div class="big-rink">' + rink + '</div>' +
+        '<div class="two"><div>' + (ex.description ? '<div class="pex-kp" style="background:#F6F7F9;border-left-color:#17171A"><div class="c" style="color:#55555D">Как выполнять</div>' + esc(ex.description) + '</div>' : '') + '</div>' +
+        '<div>' + (ex.keypoints ? '<div class="pex-kp" style="margin-top:0"><div class="c">Ключевые моменты</div>' + esc(ex.keypoints) + '</div>' : '') + '</div></div>' + docFoot() + '</div>';
+    }).join('');
+  }
+
+  // ======================================================================
+  //  ЛОГОТИП
+  // ======================================================================
+  function logoPreview(lg) {
+    // центр площадки крупно
+    return R.svg({ view: 'full', logo: lg, objects: [] }).replace(/viewBox="[^"]*"/, 'viewBox="78 28 44 29"');
+  }
+  function renderLogoGrid() {
+    const s = lib.settings.logo || 'none';
+    let h = ['none', 'xvision', 'avangard'].map((k) => '<div class="lg' + (s === k ? ' on' : '') + '" data-logo="' + k + '">' + logoPreview(k === 'none' ? null : builtin[k]) + '<div class="nm">' + BUILTIN_NAMES[k] + '</div></div>').join('');
+    h += (lib.settings.customLogos || []).map((c) => '<div class="lg' + (s === 'custom:' + c.id ? ' on' : '') + '" data-logo="custom:' + c.id + '">' + logoPreview(c) +
+      '<div class="nm">' + esc(c.name || 'Свой логотип') + '</div><button class="del" data-del="' + c.id + '" title="Удалить">' + ico('x') + '</button></div>').join('');
+    h += '<div class="lg add" data-add="1">' + ico('plus') + '<div class="nm">Загрузить свой</div><div class="hint" style="text-align:center">PNG с прозрачным фоном — лучше всего</div></div>';
+    $('logoGrid').innerHTML = h;
+    const cur = curLogo();
+    const custom = s.indexOf('custom:') === 0 && cur;
+    $('logoBgRow').style.display = custom ? 'flex' : 'none';
+    if (custom) document.querySelectorAll('#logoBgSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === (cur.bg || 'none')));
+  }
+  function openLogo() {
+    $('setClub').value = lib.settings.club || ''; $('setCoach').value = lib.settings.coach || '';
+    $('setTrap').checked = !!lib.settings.trapezoid;
+    renderLogoGrid(); $('logoDlg').classList.add('show');
+  }
+  function closeLogo() {
+    lib.settings.club = $('setClub').value.trim(); lib.settings.coach = $('setCoach').value.trim();
+    lib.settings.trapezoid = $('setTrap').checked; R.trapezoid = !!lib.settings.trapezoid;
+    $('logoDlg').classList.remove('show'); saveLib();
+    refreshAfterLogo();
+  }
+  function refreshAfterLogo() {
+    updateBgLogo();
+    if ($('vLib').classList.contains('show')) renderLib();
+    if ($('vEx').classList.contains('show')) renderRink();
+    if ($('vTr').classList.contains('show')) renderItems();
+  }
+  $('logoBtn').addEventListener('click', openLogo);
+  $('logoBtn2').addEventListener('click', openLogo);
+  $('logoClose').addEventListener('click', closeLogo);
+  $('logoDone').addEventListener('click', closeLogo);
+  $('logoGrid').addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      e.stopPropagation();
+      const id = del.dataset.del;
+      if (!(await ask('Удалить логотип?', 'Логотип пропадёт из списка. Упражнения не изменятся.', [{ label: 'Отмена', value: false }, { label: 'Удалить', value: true, kind: 'danger' }]))) { $('logoDlg').classList.add('show'); return; }
+      lib.settings.customLogos = lib.settings.customLogos.filter((c) => c.id !== id);
+      if (lib.settings.logo === 'custom:' + id) lib.settings.logo = 'none';
+      $('logoDlg').classList.add('show');
+      saveLib(); renderLogoGrid(); refreshAfterLogo(); return;
+    }
+    if (e.target.closest('[data-add]')) { $('logoFile').click(); return; }
+    const c = e.target.closest('[data-logo]'); if (!c) return;
+    lib.settings.logo = c.dataset.logo; saveLib(); renderLogoGrid(); refreshAfterLogo();
+  });
+  $('logoBgSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]'); const cur = curLogo(); if (!b || !cur || !lib.settings.logo.startsWith('custom:')) return;
+    cur.bg = b.dataset.v; saveLib(); renderLogoGrid(); refreshAfterLogo();
+  });
+  $('logoFile').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    const raw = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(null); r.readAsDataURL(f); });
+    const s = raw && await shrinkImage(raw, 600);
+    if (!s) { toast('Не удалось открыть картинку', { err: true }); return; }
+    const c = { id: uid(), name: f.name.replace(/\.[^.]+$/, '').slice(0, 30), data: s.data, ar: s.ar, bg: 'none' };
+    lib.settings.customLogos = (lib.settings.customLogos || []).concat([c]);
+    lib.settings.logo = 'custom:' + c.id;
+    saveLib(); renderLogoGrid(); refreshAfterLogo();
+  });
+
+  // ======================================================================
+  //  ПРИМЕРЫ (при первом запуске)
+  // ======================================================================
+  function arc(cx, cy, r, a0, a1, n) { const out = []; for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; out.push([Math.round((cx + r * Math.cos(a)) * 10) / 10, Math.round((cy + r * Math.sin(a)) * 10) / 10]); } return out; }
+  // восьмёрка вокруг двух кругов вбрасывания (кривая Лиссажу), mirror — для правой стороны
+  function eight(cx, cy, A, B, mirror) {
+    const out = [];
+    for (let i = 0; i <= 27; i++) {
+      const th = 2 * Math.PI * i / 28;
+      const x = cx + (mirror ? -1 : 1) * A * Math.sin(2 * th), y = cy - B * Math.sin(th);
+      out.push([Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+    }
+    return out;
+  }
+  function samples() {
+    const now = Date.now();
+    const L = (style, pts, extra) => Object.assign({ id: uid(), type: 'line', style, pts, w: 2, color: '#17171A' }, extra || {});
+    const Pl = (kind, x, y, label) => { const o = { id: uid(), type: 'player', kind, x, y }; if (label != null) o.label = label; return o; };
+    const ex1 = {
+      id: uid(), sample: true, name: 'Восьмёрка вокруг кругов', category: 'Разминка', age: 'Любой', minutes: 8, view: 'full',
+      description: 'Две колонны между кругами вбрасывания в каждой зоне.\nКатание вперёд восьмёркой вокруг кругов вбрасывания, у синей линии — разворот и катание спиной до центра.\nСмена по свистку, через 3 круга — в другую сторону.',
+      keypoints: 'Глубокая посадка\nПерекрёстный шаг на поворотах\nГолова поднята',
+      objects: [
+        Pl('F', 31, 42.5, 'Н'), Pl('F', 22, 42.5, 'Н'), Pl('F', 169, 42.5, 'Н'), Pl('F', 178, 42.5, 'Н'),
+        L('skate', eight(31, 42.5, 20, 40, false).concat([[52, 46], [66, 50]])), L('back', [[68, 50], [80, 49], [92, 46]]),
+        L('skate', eight(169, 42.5, 20, 40, true).concat([[148, 39], [134, 35]])), L('back', [[132, 35], [120, 36], [108, 39]]),
+        { id: uid(), type: 'cone', x: 75, y: 42.5 }, { id: uid(), type: 'cone', x: 125, y: 42.5 },
+        Pl('C', 100, 79, 'Т'),
+      ],
+    };
+    const ex2 = {
+      id: uid(), sample: true, name: 'Выход из зоны через защитника', category: 'Основная часть', age: 'Любой', minutes: 10, view: 'half',
+      description: 'Тренер вбрасывает шайбу в угол.\nЗащитник забирает шайбу за воротами, второй защитник закрывает пятак.\nПередача крайнему у борта, крайний выходит из зоны с шайбой.',
+      keypoints: 'Плечевой чек перед подбором шайбы\nПередача на крюк\nКрайний открывается к борту лицом к шайбе',
+      objects: [
+        Pl('C', 132, 9, 'Т'), { id: uid(), type: 'pucks', x: 128, y: 6 },
+        L('pass', [[134, 11], [184, 76]], { straight: true }),
+        Pl('D', 172, 52, 'З1'), L('skate', [[173, 55], [180, 66], [189, 74]]),
+        Pl('D', 172, 33, 'З2'), L('skate', [[174, 35], [178, 41], [180, 45]]),
+        L('pass', [[190, 72], [158, 80]], { straight: true }),
+        Pl('F', 156, 79, 'Н'), L('puck', [[154, 78], [136, 72], [118, 64], [104, 60]]),
+        Pl('G', 186, 42.5, 'В'),
+      ],
+    };
+    const ex3 = {
+      id: uid(), sample: true, name: 'Атака 2 в 1', category: 'Основная часть', age: 'Любой', minutes: 10, view: 'half',
+      description: 'Два нападающих стартуют с синей линии с шайбой, защитник катится спиной.\nПервый тащит шайбу по краю, отдаёт в разрез партнёру.\nЗавершение броском, добивание.',
+      keypoints: 'Ширина атаки — по краям\nПередача на ход, не за спину\nПосле броска оба на ворота',
+      objects: [
+        Pl('F', 106, 22, 'Н1'), Pl('F', 106, 62, 'Н2'), Pl('T', 138, 42.5),
+        L('puck', [[108, 22], [128, 20], [148, 27]]),
+        L('pass', [[150, 29], [166, 52]], { straight: true }),
+        L('skate', [[108, 63], [130, 66], [160, 56], [166, 53]]),
+        L('back', [[141, 42], [152, 42.5], [163, 43]]),
+        L('shot', [[168, 52], [186, 44]], { straight: true }),
+        Pl('G', 186, 42.5, 'В'), { id: uid(), type: 'pucks', x: 102, y: 8 },
+      ],
+    };
+    [ex1, ex2, ex3].forEach((x) => { x.created = x.updated = now; });
+    const tr = {
+      id: uid(), sample: true, name: 'Пример: выход из зоны и атака', team: '', date: todayStr(), time: '18:00', topic: 'Выход из зоны и быстрая атака', place: '',
+      items: [{ exId: ex1.id, minutes: 8 }, { exId: ex2.id, minutes: 10 }, { exId: ex3.id, minutes: 10 }], notes: 'Шайбы, конусы, триноги', created: now, updated: now,
+    };
+    return { exercises: [ex1, ex2, ex3], trainings: [tr] };
+  }
+
+  // ======================================================================
+  //  ЗАПУСК
+  // ======================================================================
+  // Тренерская открыта внутри главного окна программы (а не отдельным окном)
+  const EMBEDDED = window.top !== window;
+  if (EMBEDDED) document.documentElement.classList.add('embedded');
+  window.addEventListener('message', (e) => { if (e.data && e.data.type === 'coach-shown') { fitRink(); } });
+  async function init() {
+    buildTools();
+    fillSelect($('exCatSel'), CATS); fillSelect($('exAge'), AGES);
+    fillSelect($('exCat'), CATS, 'Все категории'); fillSelect($('pickCat'), CATS, 'Все категории');
+    let data = null;
+    try { data = await api.coachLoad(); } catch (e) { data = null; loadFailed = true; }
+    if (data && data.lib) lib = Object.assign(lib, data.lib);
+    lib.settings = Object.assign({ logo: 'none', customLogos: [], club: '', coach: '' }, lib.settings || {});
+    lib.exercises = lib.exercises || []; lib.trainings = lib.trainings || [];
+    lib.exercises.forEach((x) => R.viewFor(x.view));
+    const bl = (data && data.builtinLogos) || {};
+    R.trapezoid = !!lib.settings.trapezoid;
+    for (const k of ['xvision', 'avangard']) {
+      // встроенные логотипы: из программы (картинка в данных) или прямо из папки logos — что получится
+      let s = bl[k] ? await shrinkImage(bl[k], 480) : null;
+      if (!s) s = await shrinkImage('logos/' + k + '.png', 480);
+      builtin[k] = s ? { data: s.data, ar: s.ar, bg: 'none' } : { data: 'logos/' + k + '.png', ar: k === 'xvision' ? 1.92 : 1.88, bg: 'none' };
+    }
+    if (data && data.isNew && !lib.exercises.length && !lib.trainings.length) {
+      const s = samples(); lib.exercises = s.exercises; lib.trainings = s.trainings; saveLib(true);
+    }
+    updateBgLogo();
+    knownIds = new Set(lib.exercises.map((x) => x.id).concat(lib.trainings.map((x) => x.id)));
+    openLibrary();
+    if (loadFailed) $('saveSt').textContent = $('saveSt2').textContent = 'Библиотека не прочитана — изменения не сохраняются. Перезапустите программу.';
+    else scanOld(false);
+  }
+  // большой логотип на заднем фоне Тренерской
+  function updateBgLogo() { /* фон постоянный — логотип xVision, как в Видеоаналитике */ }
+  window.__coach = { get lib() { return lib; }, E, T };
+  init();
+})();
+</script>
+</body>
+</html>

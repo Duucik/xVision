@@ -1,0 +1,42 @@
+/* xVision · Тренерская — оформление печатных планов и карточек (A4).
+   Используется и в окне просмотра, и в невидимом окне, где строится PDF/печать. */
+@font-face { font-family: "Inter"; font-weight: 400; src: url("fonts/Inter-Regular.woff") format("woff"); }
+@font-face { font-family: "Inter"; font-weight: 500; src: url("fonts/Inter-Medium.woff") format("woff"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url("fonts/Inter-SemiBold.woff") format("woff"); }
+@font-face { font-family: "Inter"; font-weight: 700; src: url("fonts/Inter-Bold.woff") format("woff"); }
+@font-face { font-family: "Inter Display"; font-weight: 800; src: url("fonts/InterDisplay-ExtraBold.woff") format("woff"); }
+.sheet, body.printdoc { --font-brand: "Inter Display", "Inter", "Segoe UI", sans-serif; font-family: "Inter", "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+.sheet { width: 210mm; min-height: 120mm; padding: 12mm; background: #fff; color: #17171A; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-size: 10pt; }
+.d-head { display: flex; align-items: center; gap: 12px; border-bottom: 2.5px solid #17171A; padding-bottom: 8px; margin-bottom: 8px; }
+.d-logo { height: 15mm; max-width: 32mm; object-fit: contain; }
+.d-logo-box { height: 15mm; width: 15mm; border-radius: 3mm; background: #17171A; display: grid; place-items: center; flex-shrink: 0; }
+.d-logo-box img { width: 12mm; height: 12mm; object-fit: contain; }
+.d-kicker { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.12em; color: #A8040E; text-transform: uppercase; }
+.d-title { font-family: var(--font-brand); font-weight: 800; font-size: 19pt; line-height: 1.1; letter-spacing: -0.01em; }
+.d-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 8.5pt; color: #55555D; margin: 2px 0 10px; }
+.d-meta b { color: #17171A; font-weight: 700; }
+.d-meta span i { font-style: normal; text-transform: uppercase; font-size: 7pt; letter-spacing: 0.08em; color: #8A8A92; margin-right: 4px; }
+.d-topic { font-size: 9.5pt; margin: -4px 0 10px; }
+.pex { break-inside: avoid; page-break-inside: avoid; margin-bottom: 9px; }
+.pex-h { display: flex; align-items: center; gap: 8px; background: #17171A; color: #fff; padding: 5px 9px; border-radius: 2mm; }
+.pex-n { width: 17px; height: 17px; border-radius: 50%; background: #E20613; color: #FFFFFF; display: grid; place-items: center; font-weight: 800; font-size: 8pt; flex-shrink: 0; }
+.pex-h b { font-size: 10.5pt; }
+.pex-cat { font-size: 7.5pt; color: #B9B9BE; }
+.pex-min { margin-left: auto; font-weight: 800; font-size: 10pt; white-space: nowrap; }
+.pex-b { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding-top: 7px; align-items: start; }
+.pex-b.solo { grid-template-columns: 1fr; }
+.pex-rink svg { height: auto; display: block; border: 1px solid #E3E5E9; border-radius: 1.5mm; }
+.pex-desc { white-space: pre-line; line-height: 1.4; font-size: 9pt; }
+.pex-kp { margin-top: 7px; background: #F4EFDF; border-left: 2.5px solid #E20613; padding: 5px 8px; white-space: pre-line; font-size: 8.5pt; line-height: 1.4; }
+.pex-kp .c, .d-notes .c { font-size: 6.8pt; font-weight: 800; letter-spacing: 0.12em; color: #A8040E; text-transform: uppercase; margin-bottom: 2px; }
+.d-notes { border: 1px solid #E3E5E9; border-radius: 2mm; padding: 7px 9px; margin-top: 4px; white-space: pre-line; font-size: 9pt; break-inside: avoid; }
+.d-foot { display: flex; justify-content: space-between; color: #8A8A92; font-size: 7.5pt; margin-top: 10px; padding-top: 6px; border-top: 1px solid #E3E5E9; }
+.exsheet .pex-rink svg { border: none; }
+.exsheet .big-rink { margin: 4px 0 10px; }
+.exsheet .big-rink svg { height: auto; display: block; margin: 0 auto; border: 1px solid #E3E5E9; border-radius: 2mm; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+@page { size: A4; margin: 11mm; }
+body.printdoc { margin: 0; background: #fff; }
+body.printdoc .sheet { width: auto; min-height: 0; padding: 0; box-shadow: none; }
+body.printdoc .sheet + .sheet { break-before: page; page-break-before: always; }
