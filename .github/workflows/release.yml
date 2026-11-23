@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      check_only:
+        description: 'Только собрать и проверить, без выпуска'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -29,7 +34,10 @@ jobs:
         run: |
           V=$(node -p "require('./package.json').version")
           echo "version=$V" >> "$GITHUB_OUTPUT"
-          if gh release view "v$V" > /dev/null 2>&1; then
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            echo "Проверочная сборка — без выпуска."
+            echo "skip=0" >> "$GITHUB_OUTPUT"
+          elif gh release view "v$V" > /dev/null 2>&1; then
             echo "Релиз v$V уже есть — собирать нечего."
             echo "skip=1" >> "$GITHUB_OUTPUT"
           else
@@ -61,7 +69,7 @@ jobs:
         run: node .github/check-build.js
 
       - name: Выпуск на GitHub
-        if: steps.v.outputs.skip == '0'
+        if: steps.v.outputs.skip == '0' && inputs.check_only != true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
