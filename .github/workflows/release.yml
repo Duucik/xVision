@@ -1,6 +1,8 @@
 # Сборка и выпуск xVision ITAA.
 # Запускается сама, когда в ветку main попадает новая версия (поле "version" в package.json).
-# Если релиз с такой версией уже есть — ничего не делает. Установленные программы скачают новую версию сами.
+# Если релиз с такой версией уже есть — ничего не делает.
+# Новая версия выходит как «пре-релиз»: её получает только Создатель (галочка «Тестовые версии» в настройках).
+# Всем — после запуска «Выпустить для всех» (Actions → Выпустить для всех → Run workflow).
 name: Сборка и выпуск
 
 on:
@@ -81,4 +83,4 @@ jobs:
             "dist/xVision-ITAA-Setup-$V.exe" \
             "dist/xVision-ITAA-Setup-$V.exe.blockmap" \
             "dist/latest.yml" \
-            --title "xVision ITAA $V" --notes-file notes.md --latest
+            --title "xVision ITAA $V" --notes-file notes.md --prerelease

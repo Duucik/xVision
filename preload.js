@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('api', {
   updateNotes: () => ipcRenderer.invoke('update-notes'),
   updateCheck: () => ipcRenderer.invoke('update-check'),
   updateInstall: () => ipcRenderer.invoke('update-install'),
+  updateBeta: (on) => ipcRenderer.invoke('update-beta', on),
   onUpdateStatus: (callback) => {
     ipcRenderer.removeAllListeners('update-status');
     ipcRenderer.on('update-status', (event, msg) => callback(msg));

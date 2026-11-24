@@ -1,0 +1,34 @@
+# «Выпустить для всех»: самая новая тестовая версия (пре-релиз) становится обычной —
+# установленные программы у всех скачают её сами.
+# Запуск: GitHub → Actions → «Выпустить для всех» → Run workflow (можно с телефона).
+name: Выпустить для всех
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Версия (например v1.5.0). Пусто — самая новая тестовая'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Выпустить
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG_IN: ${{ inputs.tag }}
+        run: |
+          TAG="$TAG_IN"
+          if [ -z "$TAG" ]; then
+            TAG=$(gh api "repos/$REPO/releases?per_page=30" --jq '[.[] | select(.prerelease and (.draft | not))][0].tag_name')
+          fi
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then echo "::error::Тестовых версий нет — выпускать нечего"; exit 1; fi
+          ID=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id)
+          gh api -X PATCH "repos/$REPO/releases/$ID" -F prerelease=false -f make_latest=true --jq '.tag_name + " — выпущена для всех"'
+          echo "### $TAG выпущена для всех" >> "$GITHUB_STEP_SUMMARY"

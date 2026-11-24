@@ -424,6 +424,9 @@
   .lic-info { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 6px 0 10px; }
   .lic-info b { color: var(--text); font-weight: 600; }
   .upd-btn .ic { width: 14px; height: 14px; }
+  .upd-beta { display: flex; gap: 9px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; border-radius: 9px; border: 1px dashed var(--accent-line); background: var(--accent-soft); font-size: 12px; color: var(--muted); line-height: 1.45; cursor: pointer; }
+  .upd-beta b { color: var(--text); font-weight: 600; }
+  .upd-beta input { margin-top: 2px; accent-color: var(--accent); }
   .upd-btn.ready { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
   .upd-btn.ready:hover { filter: brightness(1.08); background: var(--accent); }
   .upd-btn.busy { color: var(--muted); cursor: default; }
@@ -1385,6 +1388,7 @@
       <div class="settings-section-title">Обновления</div>
       <div class="lic-info" id="updInfo">—</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="tbtn sm" id="updCheckBtn">Проверить сейчас</button><button type="button" class="tbtn sm" id="updNotesBtn">Что нового</button></div>
+      <label class="upd-beta" id="updBetaRow" style="display:none"><input type="checkbox" id="updBeta"><span><b>Тестовые версии — только мне</b><br>Новая версия сначала приходит только на этот компьютер. Всем — после «Выпустить для всех» на GitHub.</span></label>
     </div>
 
     <div class="settings-section">
@@ -5315,7 +5319,7 @@
       $('updBtnText').textContent = 'Обновить до ' + s.version;
       btn.title = 'Новая версия скачана. Нажмите — программа перезапустится уже обновлённой (проект сохранится). Или просто закройте программу — обновится при закрытии.';
     }
-    const cur = 'Установлена версия <b>' + esc(s.current || '') + '</b>.<br>';
+    const cur = 'Установлена версия <b>' + esc(s.current || '') + '</b>' + (s.beta ? ' · <b style="color:var(--accent)">тестовые версии</b>' : '') + '.<br>';
     const msg = {
       dev: 'Запуск из папки (npm start) — обновления работают только в установленной программе.',
       off: 'Обновления недоступны: ' + esc(s.error || ''),
@@ -5341,6 +5345,19 @@
     await window.api.updateInstall();
   });
   $('updCheckBtn').addEventListener('click', async () => { updS = Object.assign(updS, { state: 'checking' }); renderUpd(); const r = await window.api.updateCheck(); if (r) { updS = Object.assign(updS, r); renderUpd(); } });
+  async function refreshBeta() {
+    try {
+      const r = await window.api.updateBeta(); if (!r) return;
+      $('updBetaRow').style.display = r.allowed ? '' : 'none';
+      $('updBeta').checked = !!r.on;
+    } catch (e) {}
+  }
+  $('updBeta').addEventListener('change', async () => {
+    const r = await window.api.updateBeta($('updBeta').checked);
+    updS = Object.assign(updS, { beta: !!(r && r.on) }); renderUpd();
+    if (r && r.on) $('updCheckBtn').click();
+  });
+  refreshBeta();
   $('updNotesBtn').addEventListener('click', async () => { const t = await window.api.updateNotes(); showWhatsNew('Что нового в xVision', t || 'Список изменений не найден.'); });
   if (window.api.onUpdateStatus) window.api.onUpdateStatus((s) => { updS = Object.assign(updS, s); renderUpd(); });
   (async () => {

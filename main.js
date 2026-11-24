@@ -95,12 +95,19 @@ function updFriendly(e) {
   if (/404|Cannot find .*latest\.yml|No published versions/i.test(s)) return 'на GitHub ещё нет выпущенных версий';
   return s.split('\n')[0].slice(0, 160);
 }
+// Тестовые версии: новые сборки выходят на GitHub как «пре-релиз» и приходят только Создателю (галочка в настройках).
+// Остальные получают версию, когда её отметят «для всех» (GitHub → Actions → «Выпустить для всех»).
+const betaFile = () => path.join(app.getPath('userData'), 'update-beta.json');
+function isCreator() { try { const st = licenseState(); return !!(st && st.payload && st.payload.k === 'creator'); } catch (e) { return false; } }
+function betaOn() { if (!isCreator()) return false; try { return !!JSON.parse(fs.readFileSync(betaFile(), 'utf8')).beta; } catch (e) { return false; } }
 function setupUpdater() {
   if (!app.isPackaged) { updState = { state: 'dev' }; return; }
   try { updater = require('electron-updater').autoUpdater; } catch (e) { updState = { state: 'off', error: 'модуль обновлений не установлен' }; updLog('нет electron-updater', e); return; }
   updater.autoDownload = true;
   updater.autoInstallOnAppQuit = true;
   updater.allowDowngrade = false;
+  updater.allowPrerelease = betaOn();
+  updState.beta = updater.allowPrerelease;
   updater.logger = { info: (m) => updLog('[i]', m), warn: (m) => updLog('[!]', m), error: (m) => updLog('[x]', m), debug() {} };
   updater.on('checking-for-update', () => updSend({ state: updState.state === 'ready' ? 'ready' : 'checking', error: '' }));
   updater.on('update-available', (i) => updSend({ state: 'downloading', version: i.version, percent: 0 }));
@@ -136,6 +143,14 @@ ipcMain.handle('update-info', () => {
   return Object.assign({}, updState, { current: cur, whatsNew });
 });
 ipcMain.handle('update-notes', () => changelogSections().slice(0, 6).map((s) => s.text).join('\n\n\n'));
+ipcMain.handle('update-beta', (e, on) => {
+  if (on == null || !isCreator()) return { on: betaOn(), allowed: isCreator() };
+  try { fs.writeFileSync(betaFile(), JSON.stringify({ beta: !!on })); } catch (err) {}
+  if (updater) updater.allowPrerelease = !!on;
+  updLog('тестовые версии: ' + (on ? 'вкл' : 'выкл'));
+  updSend({ beta: !!on });
+  return { on: !!on, allowed: true };
+});
 ipcMain.handle('update-check', async () => {
   if (!updater) return Object.assign({}, updState);
   if (updState.state === 'ready' || updState.state === 'downloading') return Object.assign({}, updState);
