@@ -3,4 +3,3 @@ dist/
 models/*.onnx
 bin/*.exe
 *.log
-build/background.tiff

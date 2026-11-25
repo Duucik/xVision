@@ -190,18 +190,6 @@ async function prepareSam() {
   }
 }
 
-// Фон окна установки на Mac: обычная и «ретина»-картинки склеиваются в один файл background.tiff
-function prepareDmgBackground() {
-  const b = path.join(__dirname, 'build');
-  const out = path.join(b, 'background.tiff');
-  let r = spawnSync('tiffutil', ['-cathidpicheck', path.join(b, 'dmg-background.png'), path.join(b, 'dmg-background@2x.png'), '-out', out], { stdio: 'inherit' });
-  if (r.status !== 0 || !fs.existsSync(out)) {
-    r = spawnSync('sips', ['-s', 'format', 'tiff', path.join(b, 'dmg-background.png'), '--out', out], { stdio: 'inherit' });
-  }
-  if (!fs.existsSync(out)) throw new Error('не удалось подготовить build/background.tiff');
-  console.log('[подготовка] фон окна установки готов');
-}
-
 async function main() {
   // Без открытого ключа защиты собирать установщик нельзя: такую программу сможет запустить кто угодно.
   if (!fs.existsSync(path.join(__dirname, 'license', 'public.key'))) {
@@ -215,7 +203,6 @@ async function main() {
   try { await prepareLoader(); } catch (e) { console.log('[подготовка] загрузчик видео: ' + e.message); }
   try { await prepareModel(); } catch (e) { console.log('[подготовка] модель распознавания: ' + e.message); }
   try { await prepareSam(); } catch (e) { console.log('[подготовка] нейросеть для «Позиции»: ' + e.message); }
-  if (process.platform === 'darwin') { try { prepareDmgBackground(); } catch (e) { console.log('[подготовка] фон окна установки: ' + e.message); } }
   if (process.platform !== 'win32') return; // дальше — только для Windows
   try { copyVcRuntime(); } catch (e) { console.log('[подготовка] библиотеки Visual C++: ' + e.message); }
   const base = path.join(cacheRoot(), 'winCodeSign');
