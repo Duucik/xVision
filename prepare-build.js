@@ -67,8 +67,9 @@ function copyVcRuntime() {
 // Загрузчик видео (yt-dlp) вшивается в установщик: у тренеров загрузка матча по ссылке работает сразу,
 // программе не нужно ничего докачивать с GitHub при первом запуске. Файл обновляется при каждой сборке
 // (если он старше трёх дней); не удалось скачать — берём тот, что уже лежит в папке bin.
-const LOADER_URLS = ['https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
-  'https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe'];
+const LOADER_ASSET = process.platform === 'win32' ? 'yt-dlp.exe' : process.platform === 'darwin' ? 'yt-dlp_macos' : 'yt-dlp_linux';
+const LOADER_URLS = ['https://github.com/yt-dlp/yt-dlp/releases/latest/download/' + LOADER_ASSET,
+  'https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/' + LOADER_ASSET];
 function downloadLoader(url, dest, redirects) {
   return new Promise((resolve, reject) => {
     if ((redirects || 0) > 8) return reject(new Error('слишком много перенаправлений'));
@@ -91,7 +92,7 @@ function downloadLoader(url, dest, redirects) {
 async function prepareLoader() {
   const dir = path.join(__dirname, 'bin');
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, 'yt-dlp.exe');
+  const file = path.join(dir, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
   const size = () => { try { return fs.statSync(file).size; } catch (e) { return 0; } };
   const have = size() > 3 * 1024 * 1024;
   if (have && Date.now() - fs.statSync(file).mtimeMs < 3 * 24 * 3600 * 1000) {
@@ -108,6 +109,7 @@ async function prepareLoader() {
       if (fs.statSync(tmp).size < 3 * 1024 * 1024) throw new Error('файл скачался не полностью');
       fs.rmSync(file, { force: true });
       fs.renameSync(tmp, file);
+      if (process.platform !== 'win32') fs.chmodSync(file, 0o755);
       console.log('[подготовка] загрузчик видео добавлен в сборку');
       return;
     } catch (e) { err = e; }
@@ -198,10 +200,10 @@ async function main() {
     console.log('');
     process.exit(1);
   }
-  if (process.platform !== 'win32') return;
   try { await prepareLoader(); } catch (e) { console.log('[подготовка] загрузчик видео: ' + e.message); }
   try { await prepareModel(); } catch (e) { console.log('[подготовка] модель распознавания: ' + e.message); }
   try { await prepareSam(); } catch (e) { console.log('[подготовка] нейросеть для «Позиции»: ' + e.message); }
+  if (process.platform !== 'win32') return; // дальше — только для Windows
   try { copyVcRuntime(); } catch (e) { console.log('[подготовка] библиотеки Visual C++: ' + e.message); }
   const base = path.join(cacheRoot(), 'winCodeSign');
   const target = path.join(base, VERSION);

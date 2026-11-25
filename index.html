@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>if (/Mac/i.test(navigator.platform || '')) document.documentElement.classList.add('mac');</script>
 <meta charset="UTF-8" />
 <title>xVision</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1046,6 +1047,9 @@
   .splash { background: radial-gradient(700px 520px at 78% 18%, rgba(226,6,19,0.20), transparent 65%), radial-gradient(600px 500px at 10% 100%, rgba(192,177,154,0.12), transparent 60%), var(--bg); }
   .ed { background: radial-gradient(1000px 620px at 88% -10%, rgba(226,6,19,0.18), transparent 62%), radial-gradient(800px 600px at -6% 108%, rgba(192,177,154,0.08), transparent 60%), #0D0E10; }
 
+
+  /* Mac: «светофор» окна слева, справа системных кнопок нет */
+  html.mac .titlebar { padding-left: 84px; padding-right: 14px; }
 </style>
 </head>
 <body>
@@ -5568,6 +5572,10 @@
       btn.style.display = ''; btn.classList.add('busy');
       $('updBtnText').textContent = 'Обновление ' + (s.percent || 0) + '%';
       btn.title = 'Скачивается xVision ' + (s.version || '') + '. Можно работать дальше.';
+    } else if (s.state === 'manual') { // Mac: новую версию скачивают и ставят вручную
+      btn.style.display = ''; btn.classList.add('ready');
+      $('updBtnText').textContent = 'Скачать ' + s.version;
+      btn.title = 'Вышла версия ' + s.version + '. Скачается файл .dmg: откройте его и перетащите xVision в «Программы» (с заменой).';
     } else if (s.state === 'ready') {
       btn.style.display = ''; btn.classList.add('ready');
       $('updBtnText').textContent = 'Обновить до ' + s.version;
@@ -5581,11 +5589,12 @@
       checking: 'Проверяю, есть ли новая версия…',
       latest: 'Это последняя версия. Проверено ' + esc(updAgo(s.checkedAt)) + '.',
       downloading: 'Скачивается версия <b>' + esc(s.version || '') + '</b> — ' + (s.percent || 0) + '%. Можно работать дальше.',
+      manual: 'Вышла версия <b>' + esc(s.version || '') + '</b>. На Mac обновление ставится вручную: кнопка «Скачать ' + esc(s.version || '') + '» вверху → откройте скачанный файл .dmg → перетащите xVision в «Программы» с заменой.',
       ready: 'Версия <b>' + esc(s.version || '') + '</b> скачана. Установится при закрытии программы — или нажмите «Обновить до ' + esc(s.version || '') + '» вверху.',
       error: 'Не удалось проверить: ' + esc(s.error || '') + '.',
     }[s.state] || '';
     info.innerHTML = cur + msg;
-    $('updCheckBtn').disabled = ['checking', 'downloading', 'ready', 'dev', 'off'].includes(s.state);
+    $('updCheckBtn').disabled = ['checking', 'downloading', 'ready', 'dev', 'off', 'manual'].includes(s.state);
   }
   // в файле строки перенесены вручную (~100 символов) — склеиваем продолжения, чтобы текст переносился по ширине окна
   const unwrapNotes = (t) => String(t || '').replace(/\r/g, '').replace(/\n[ \t]{2,}(?![•\d\-–])/g, ' ').replace(/\n(?![ \t]*[•\d\-–]|\n|xVision |[А-ЯA-Z][^\n]{0,40}\n)([а-яa-z«(])/g, ' $1');
@@ -5593,6 +5602,7 @@
   $('wnOkBtn').addEventListener('click', () => $('whatsNewOverlay').classList.remove('active'));
   $('whatsNewOverlay').addEventListener('click', (e) => { if (e.target === $('whatsNewOverlay')) $('whatsNewOverlay').classList.remove('active'); });
   $('updBtn').addEventListener('click', async () => {
+    if (updS.state === 'manual') { await window.api.updateInstall(); toast('Скачивается ' + updS.version + ' — откройте файл и перетащите xVision в «Программы»'); return; }
     if (updS.state !== 'ready') return;
     try { flushProjectSave(true); } catch (e) {}
     $('updBtnText').textContent = 'Перезапуск…';
@@ -7732,7 +7742,7 @@
   window.addEventListener('resize', fitCoachFrame);
   // Запросы Тренерской к программе через главное окно (если мост во фрейм не попал). Только от фрейма Тренерской
   // и только её функции.
-  const COACH_API = ['coachLoad', 'coachSave', 'coachPdf', 'coachPrint', 'coachSavePng', 'coachExport', 'coachShowFile', 'coachFindOld'];
+  const COACH_API = ['coachLoad', 'coachSave', 'coachPdf', 'coachPrint', 'coachSavePng', 'coachExport', 'coachShowFile', 'coachFindOld', 'coachVideoAdd', 'coachVideoPath', 'coachOpenUrl'];
   window.addEventListener('message', async (e) => {
     const d = e.data;
     if (!d || d.type !== 'coach-api' || !coachFrame || e.source !== coachFrame.contentWindow) return;

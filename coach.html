@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>if (/Mac/i.test(navigator.platform || '')) document.documentElement.classList.add('mac');</script>
 <meta charset="UTF-8" />
 <title>xVision · Тренерская</title>
 <link rel="stylesheet" href="coach-print.css" />
@@ -212,6 +213,26 @@
   .modal-bg.show { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; width: 100%; max-width: 460px; max-height: 100%; display: flex; flex-direction: column; box-shadow: 0 24px 70px rgba(0,0,0,0.55); }
   .modal.wide { max-width: 1040px; height: 100%; }
+  .modal.vid-modal { max-width: 1100px; }
+  .vid-modal .modal-h { display: flex; align-items: center; gap: 10px; }
+  .vid-modal .modal-h h3 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vid-wrap { position: relative; background: #000; border-radius: 0 0 16px 16px; overflow: hidden; }
+  .vid-wrap video { display: block; width: 100%; max-height: calc(100vh - 160px); background: #000; }
+  .vid-err { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; text-align: center; padding: 30px; color: #ECECEA; font-size: 14px; line-height: 1.5; }
+  .vid-err.show { display: flex; }
+  .vid-box { display: flex; flex-direction: column; gap: 6px; }
+  .vid-box .vid-drop { border: 1.5px dashed var(--border2); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .vid-box .vid-drop.over { border-color: var(--accent); background: rgba(227,52,60,0.06); }
+  .vid-box .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .vid-box .vhint { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .vid-box .vfile { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border2); background: rgba(255,255,255,0.03); }
+  .vid-box .vfile .nm { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vid-box .link-in { display: flex; gap: 6px; }
+  .vid-box .link-in input { flex: 1; min-width: 0; }
+  .vid-badge { position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px; border-radius: 50%; background: rgba(10,10,12,0.78); border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; }
+  .vid-badge:hover { background: var(--accent); border-color: var(--accent); }
+  .vid-badge .ic { width: 13px; height: 13px; fill: currentColor; stroke: none; }
+  .ex-card .pic, .it .pic { position: relative; }
   .modal-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px 10px; }
   .modal-h h3 { margin: 0; font-size: 17px; flex: 1; }
   .modal-b { padding: 4px 18px 16px; overflow-y: auto; }
@@ -374,6 +395,9 @@
 
   :root { color-scheme: dark; }
   select option, select optgroup { background: #1F2024; color: #EDEDF0; }
+
+  /* Mac: «светофор» окна слева, справа системных кнопок нет */
+  html.mac .titlebar { padding-left: 84px; padding-right: 14px; }
 </style>
 </head>
 <body>
@@ -400,6 +424,9 @@
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10.5 5-3v9l-5-3z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-front" viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="1.5"/><rect x="9" y="9" width="11" height="11" rx="1.5" fill="currentColor" fill-opacity="0.3"/></symbol>
@@ -490,6 +517,7 @@
             <div class="card props" id="props"></div>
             <label class="fld"><span class="cap">Описание — как выполнять</span><textarea class="ta" id="exDesc" rows="7" placeholder="1. Тренер даёт шайбу в угол.&#10;2. Защитник отдаёт на крайнего…"></textarea></label>
             <label class="fld"><span class="cap">Ключевые моменты</span><textarea class="ta" id="exKp" rows="5" placeholder="Голова поднята, передача на крюк, скорость на входе…"></textarea></label>
+            <div class="fld"><span class="cap">Видео — пример выполнения</span><div class="vid-box" id="exVid"></div></div>
             <div class="kbd-help">
               <div><kbd>V</kbd>выбор <kbd>T</kbd>текст <kbd>1</kbd>–<kbd>8</kbd>линии</div>
               <div><kbd>Del</kbd>удалить <kbd>Ctrl+D</kbd>копия <kbd>Ctrl+Z</kbd>отменить</div>
@@ -550,6 +578,10 @@
   </div>
 
   <!-- окна -->
+  <div class="modal-bg" id="vidDlg"><div class="modal vid-modal">
+    <div class="modal-h"><h3 id="vidTitle">Пример выполнения</h3><button class="btn sm icon" id="vidClose" title="Закрыть">✕</button></div>
+    <div class="vid-wrap"><video id="vidPlayer" controls playsinline></video><div class="vid-err" id="vidErr"></div></div>
+  </div></div>
   <div class="modal-bg" id="dlg"><div class="modal">
     <div class="modal-h"><h3 id="dlgTitle"></h3></div>
     <div class="modal-b"><p class="modal-text" id="dlgText"></p></div>
@@ -619,7 +651,7 @@
   // Тренерская открыта во фрейме главного окна. Если мост программы во фрейм не попал или появился позже,
   // запрос идёт через главное окно — у него мост есть всегда. Раньше в этом случае «Сохранить PDF» молча
   // открывал системную печать, а библиотека не записывалась на диск.
-  const API_NAMES = ['coachLoad', 'coachSave', 'coachPdf', 'coachPrint', 'coachSavePng', 'coachExport', 'coachShowFile', 'coachFindOld'];
+  const API_NAMES = ['coachLoad', 'coachSave', 'coachPdf', 'coachPrint', 'coachSavePng', 'coachExport', 'coachShowFile', 'coachFindOld', 'coachVideoAdd', 'coachVideoPath', 'coachOpenUrl'];
   const viaParent = (() => {
     let seq = 0; const wait = new Map();
     window.addEventListener('message', (e) => {
@@ -807,7 +839,7 @@
       } else {
         box.innerHTML = '<div class="ex-grid">' + list.map((e) =>
           '<div class="ex-card" data-id="' + e.id + '"><div class="pic" data-act="open">' + exThumb(e) +
-          '<input type="checkbox" class="chk" data-sel="ex"' + (selected.ex.has(e.id) ? ' checked' : '') + ' /></div>' +
+          '<input type="checkbox" class="chk" data-sel="ex"' + (selected.ex.has(e.id) ? ' checked' : '') + ' />' + vidBadge(e) + '</div>' +
           '<div class="body"><div class="nm" data-act="open">' + esc(e.name || 'Без названия') + (e.sample ? '<span class="badge">Пример</span>' : '') + '</div>' +
           '<div class="mt">' + [e.category, (e.minutes || 0) + ' мин', e.age && e.age !== 'Любой' ? e.age : ''].filter(Boolean).map(esc).join(' · ') + '</div>' +
           '<div class="acts"><button class="btn sm" data-act="open">' + ico('edit') + 'Открыть</button><button class="btn sm" data-act="print">' + ico('print') + 'PDF</button>' +
@@ -835,6 +867,7 @@
   });
   $('libList').addEventListener('click', async (e) => {
     if (e.target.closest('[data-sel]')) return;
+    const vb = e.target.closest('[data-vid]'); if (vb) { e.stopPropagation(); const x = exById(vb.dataset.vid); if (x) playExVideo(x); return; }
     const a = e.target.closest('[data-act]'); if (!a) return;
     const id = e.target.closest('[data-id]').dataset.id, act = a.dataset.act;
     if (libTab === 'tr') {
@@ -1269,12 +1302,67 @@
     $('exMin').value = E.ex.minutes || 10;
     $('exDesc').value = E.ex.description || '';
     $('exKp').value = E.ex.keypoints || '';
+    renderExVid();
     showView('vEx');
     renderRink(); updateToolUI();
     requestAnimationFrame(fitRink);
     if (!ex) setTimeout(() => $('exName').focus(), 50);
   }
   ['exName', 'exCatSel', 'exAge', 'exMin', 'exDesc', 'exKp'].forEach((id) => $(id).addEventListener('input', () => { E.dirty = true; if (id === 'exName') $('exTitle').textContent = $('exName').value || 'Новое упражнение'; }));
+  // ---------- видео — пример выполнения ----------
+  // ex.video = { file: 'a1b2c3.mp4', name: 'исходное имя.mp4' } (файл лежит в библиотеке Тренерской) или { url: 'https://…' }
+  function vidBadge(ex) { return ex && ex.video && (ex.video.file || ex.video.url) ? '<span class="vid-badge" data-vid="' + ex.id + '" title="Видео — пример выполнения">' + ico('play') + '</span>' : ''; }
+  function renderExVid() {
+    const v = E.ex.video, box = $('exVid');
+    if (v && (v.file || v.url)) {
+      box.innerHTML = '<div class="vfile">' + ico(v.url ? 'link' : 'video') + '<span class="nm" title="' + esc(v.url || v.name || '') + '">' + esc(v.url || v.name || 'Видео') + '</span>' +
+        '<button class="btn sm" id="exVidPlay">' + ico('play') + 'Смотреть</button><button class="btn sm icon danger" id="exVidDel" title="Убрать видео">' + ico('x') + '</button></div>';
+      $('exVidPlay').onclick = () => playExVideo(E.ex);
+      $('exVidDel').onclick = () => { delete E.ex.video; E.dirty = true; renderExVid(); };
+      return;
+    }
+    box.innerHTML = '<div class="vid-drop" id="exVidDrop"><div class="row"><button class="btn sm" id="exVidAdd">' + ico('video') + 'Прикрепить видео</button><button class="btn sm" id="exVidLinkBtn">' + ico('link') + 'Ссылка</button></div>' +
+      '<div class="link-in" id="exVidLinkRow" style="display:none"><input class="inp" id="exVidLink" placeholder="https://vkvideo.ru/… или https://youtu.be/…" spellcheck="false"><button class="btn sm primary" id="exVidLinkOk">OK</button></div>' +
+      '<div class="vhint">Если тренер забыл, как выполняется упражнение, — посмотрит пример. Файл можно перетащить сюда.</div></div>';
+    $('exVidAdd').onclick = () => attachVideo();
+    $('exVidLinkBtn').onclick = () => { $('exVidLinkRow').style.display = ''; $('exVidLink').focus(); };
+    const okLink = () => { const u = $('exVidLink').value.trim(); if (!/^https?:\/\/\S+$/i.test(u)) { toast('Нужна ссылка вида https://…'); return; } E.ex.video = { url: u }; E.dirty = true; renderExVid(); };
+    $('exVidLinkOk').onclick = okLink;
+    $('exVidLink').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') okLink(); });
+    const drop = $('exVidDrop');
+    ['dragenter', 'dragover'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, () => drop.classList.remove('over')));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return;
+      const p = window.api && window.api.pathForFile ? window.api.pathForFile(f) : '';
+      if (!p) { toast('Перетаскивание здесь не сработало — нажмите «Прикрепить видео»'); return; }
+      attachVideo(p);
+    });
+  }
+  async function attachVideo(p) {
+    let r; try { r = await api.coachVideoAdd(p || null); } catch (e) { r = { ok: false, error: e.message }; }
+    if (!r || r.canceled) return;
+    if (!r.ok) { toast(r.error || 'Не удалось прикрепить видео'); return; }
+    E.ex.video = { file: r.file, name: r.name }; E.dirty = true; renderExVid();
+    toast('Видео прикреплено — не забудьте сохранить упражнение');
+  }
+  async function playExVideo(ex) {
+    const v = ex && ex.video; if (!v) return;
+    if (v.url) { api.coachOpenUrl(v.url); return; }
+    let p = ''; try { p = await api.coachVideoPath(v.file); } catch (e) {}
+    const pl = $('vidPlayer'), err = $('vidErr');
+    $('vidTitle').textContent = (ex.name || 'Упражнение') + ' — пример выполнения';
+    err.classList.remove('show'); pl.style.visibility = '';
+    if (!p) { err.textContent = 'Видео не найдено на этом компьютере. Если упражнение перенесли с другого компьютера — прикрепите видео заново.'; err.classList.add('show'); pl.removeAttribute('src'); pl.style.visibility = 'hidden'; }
+    else { pl.src = 'file:///' + p.replace(/\\/g, '/').replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/').replace(/^([A-Za-z])%3A/, '$1:'); pl.play().catch(() => {}); }
+    $('vidDlg').classList.add('show');
+  }
+  $('vidPlayer').addEventListener('error', () => { const err = $('vidErr'); err.textContent = 'Это видео не открывается в программе (возможно, формат HEVC с iPhone). Сохраните его в MP4 (H.264) и прикрепите заново.'; err.classList.add('show'); });
+  const closeVid = () => { $('vidDlg').classList.remove('show'); const pl = $('vidPlayer'); pl.pause(); pl.removeAttribute('src'); pl.load(); };
+  $('vidClose').addEventListener('click', closeVid);
+  $('vidDlg').addEventListener('mousedown', (e) => { if (e.target === $('vidDlg')) closeVid(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('vidDlg').classList.contains('show')) { e.stopPropagation(); closeVid(); } }, true);
   function collectEx() {
     const ex = E.ex;
     ex.name = $('exName').value.trim() || 'Без названия';
@@ -1730,7 +1818,7 @@
     box.innerHTML = t.items.map((it, i) => {
       const ex = exById(it.exId);
       if (!ex) return '<div class="it" data-i="' + i + '"><div class="num">' + (i + 1) + '</div><div></div><div class="nm">Упражнение удалено</div><div class="ctl"><button class="btn sm icon danger" data-a="rm">' + ico('x') + '</button></div></div>';
-      return '<div class="it" data-i="' + i + '"><div class="num">' + (i + 1) + '</div><div class="pic" data-a="edit" title="Открыть упражнение">' + exThumb(ex) + '</div>' +
+      return '<div class="it" data-i="' + i + '"><div class="num">' + (i + 1) + '</div><div class="pic" data-a="edit" title="Открыть упражнение">' + exThumb(ex) + vidBadge(ex) + '</div>' +
         '<div style="min-width:0"><div class="nm">' + esc(ex.name) + '</div><div class="mt">' + esc(ex.category || '') + '</div><div class="ds">' + esc(ex.description || '') + '</div></div>' +
         '<div class="ctl"><input class="inp min" type="number" min="1" max="180" data-a="min" value="' + (it.minutes || ex.minutes || 10) + '"/><span class="hint">мин</span>' +
         '<button class="btn sm icon" data-a="up" title="Выше"' + (i === 0 ? ' disabled' : '') + '>' + ico('up') + '</button>' +
@@ -1740,6 +1828,7 @@
     }).join('');
   }
   $('trItems').addEventListener('click', (e) => {
+    const vb = e.target.closest('[data-vid]'); if (vb) { e.stopPropagation(); const x = exById(vb.dataset.vid); if (x) playExVideo(x); return; }
     const b = e.target.closest('[data-a]'); if (!b || b.dataset.a === 'min') return;
     const i = +e.target.closest('[data-i]').dataset.i, items = T.tr.items;
     if (b.dataset.a === 'up' && i > 0) { [items[i - 1], items[i]] = [items[i], items[i - 1]]; }

@@ -25,6 +25,9 @@ concurrency:
 jobs:
   release:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      skip: ${{ steps.v.outputs.skip }}
     steps:
       - uses: actions/checkout@v5
 
@@ -84,3 +87,47 @@ jobs:
             "dist/xVision-ITAA-Setup-$V.exe.blockmap" \
             "dist/latest.yml" \
             --title "xVision ITAA $V" --notes-file notes.md --prerelease
+
+  # Mac: две сборки — для M1–M4 (arm64) и для Intel (x64). Без сертификата Apple: подпись ad-hoc.
+  # Файлы .dmg добавляются в тот же релиз, что собрала Windows-часть.
+  mac:
+    needs: release
+    if: needs.release.outputs.skip == '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.arch == 'x64' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Установка модулей
+        run: npm install --no-audit --no-fund
+      - name: Подготовка (загрузчик видео, нейросети)
+        run: node prepare-build.js
+      - name: Сборка для Mac (${{ matrix.arch }})
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
+      - name: Проверка сборки
+        shell: bash
+        run: |
+          ls -la dist
+          APP=$(ls -d dist/mac*/*.app | head -1)
+          test -f "$APP/Contents/Resources/app-update.yml" || echo "::warning::нет app-update.yml"
+          test -x "$APP/Contents/Resources/bin/yt-dlp" || echo "::warning::нет загрузчика видео"
+          codesign -dv "$APP" 2>&1 | head -3
+          file "$APP/Contents/MacOS/"* | head -2
+      - name: В релиз
+        if: inputs.check_only != true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "v${{ needs.release.outputs.version }}" dist/*.dmg --clobber

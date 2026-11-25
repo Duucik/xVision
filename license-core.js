@@ -34,6 +34,13 @@ function readMachineGuid() {
       if (m) return m[1];
     } catch (e) {}
   }
+  if (process.platform === 'darwin') { // Mac: аппаратный UUID (меняется только при замене платы)
+    try {
+      const out = require('child_process').execFileSync('ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'], { encoding: 'utf8', timeout: 5000 });
+      const m = out.match(/"IOPlatformUUID"\s*=\s*"([0-9A-Fa-f-]{20,})"/);
+      if (m) return m[1];
+    } catch (e) {}
+  }
   if (process.platform === 'linux') { try { return require('fs').readFileSync('/etc/machine-id', 'utf8').trim(); } catch (e) {} }
   return 'host:' + os.hostname() + '|' + (os.userInfo().username || '');
 }

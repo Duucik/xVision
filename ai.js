@@ -145,7 +145,7 @@ async function prepare({ appDir, userData, onStage, forceCpu, rememberCpu }) {
     log('запуск: модель ' + Math.round(size / 1048576) + ' МБ, ' + (forceCpu ? 'только процессор (видеокарта не ответила)' : gpuBad ? 'только процессор (видеокарта отклонена: ' + (verdict.why || '') + ')' : 'пробую видеокарту'));
     const pattern = testPattern();
     let lastErr = null;
-    if (!forceCpu && !gpuBad) {
+    if (!forceCpu && !gpuBad && process.platform === 'win32') { // видеокарта через DirectML — только на Windows; на Mac — процессор
       let g = null;
       try {
         g = await ort.InferenceSession.create(modelPath, { executionProviders: ['dml', 'cpu'], graphOptimizationLevel: 'all', enableMemPattern: false, executionMode: 'sequential' });

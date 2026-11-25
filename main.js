@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, dialog, utilityProcess, shell, screen, net, clipboard, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, utilityProcess, shell, screen, net, clipboard, safeStorage, Menu } = require('electron');
+const IS_MAC = process.platform === 'darwin';
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -103,8 +104,38 @@ function updFriendly(e) {
 const betaFile = () => path.join(app.getPath('userData'), 'update-beta.json');
 function isCreator() { try { const st = licenseState(); return !!(st && st.payload && st.payload.k === 'creator'); } catch (e) { return false; } }
 function betaOn() { if (!isCreator()) return false; try { return !!JSON.parse(fs.readFileSync(betaFile(), 'utf8')).beta; } catch (e) { return false; } }
+// Mac без сертификата Apple не умеет ставить обновления сам: проверяем GitHub и даём кнопку «Скачать».
+function macUpdater() {
+  const EE = require('events'); const u = new EE();
+  u.allowPrerelease = false;
+  u.checkForUpdates = async () => {
+    u.emit('checking-for-update');
+    const r = await ghReq('GET', u.allowPrerelease ? '/repos/' + ghRepo() + '/releases?per_page=15' : '/repos/' + ghRepo() + '/releases/latest', null, '');
+    if (r.status !== 200 || !r.json) { const e = new Error('GitHub ответил ' + (r.status || r.error)); u.emit('error', e); throw e; }
+    const list = Array.isArray(r.json) ? r.json.filter((x) => !x.draft) : [r.json];
+    const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+    // самая новая версия, у которой есть сборка для этого Mac
+    const rel = list.map((x) => ({ x, v: relVer(x.tag_name), a: (x.assets || []).find((a) => a.name.endsWith('-' + arch + '.dmg')) }))
+      .filter((y) => y.a).sort((p, q) => verNum(q.v) - verNum(p.v))[0];
+    if (rel && verNum(rel.v) > verNum(app.getVersion())) { u.url = rel.a.browser_download_url; u.emit('update-manual', { version: rel.v }); }
+    else u.emit('update-not-available', {});
+  };
+  u.quitAndInstall = () => { if (u.url) shell.openExternal(u.url); };
+  return u;
+}
 function setupUpdater() {
   if (!app.isPackaged) { updState = { state: 'dev' }; return; }
+  if (IS_MAC) {
+    updater = macUpdater();
+    updater.allowPrerelease = betaOn(); updState.beta = updater.allowPrerelease;
+    updater.on('checking-for-update', () => updSend({ state: updState.state === 'manual' ? 'manual' : 'checking', error: '' }));
+    updater.on('update-manual', (i) => updSend({ state: 'manual', version: i.version }));
+    updater.on('update-not-available', () => updSend({ state: 'latest', checkedAt: Date.now() }));
+    updater.on('error', (e) => { updLog('ошибка', e); if (updState.state !== 'manual') updSend({ state: 'error', error: updFriendly(e), checkedAt: Date.now() }); });
+    const check = () => updater.checkForUpdates().catch((e) => updLog('проверка', e));
+    setTimeout(check, 8000); setInterval(check, 3 * 3600 * 1000);
+    return;
+  }
   try { updater = require('electron-updater').autoUpdater; } catch (e) { updState = { state: 'off', error: 'модуль обновлений не установлен' }; updLog('нет electron-updater', e); return; }
   updater.autoDownload = true;
   updater.autoInstallOnAppQuit = true;
@@ -239,6 +270,7 @@ ipcMain.handle('update-check', async () => {
   return Object.assign({}, updState);
 });
 ipcMain.handle('update-install', () => {
+  if (updater && updState.state === 'manual') { updLog('Mac: открываю загрузку ' + updState.version); updater.quitAndInstall(); return true; }
   if (!updater || updState.state !== 'ready') return false;
   updLog('устанавливаю ' + updState.version);
   setImmediate(() => { try { updater.quitAndInstall(true, true); } catch (e) { updLog('установка', e); } });
@@ -256,7 +288,8 @@ function createWindow() {
     show: false, // показываем уже развёрнутым на весь экран
     // собственная шапка в стиле приложения; кнопки окна (свернуть/закрыть) остаются системными, но в цвет шапки
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#0E0E10', symbolColor: '#D9D9D6', height: 44 },
+    // Windows: кнопки окна справа, в цвет шапки; Mac: «светофор» слева
+    ...(IS_MAC ? { trafficLightPosition: { x: 14, y: 15 } } : { titleBarOverlay: { color: '#0E0E10', symbolColor: '#D9D9D6', height: 44 } }),
     icon: path.join(__dirname, 'build', 'icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -315,6 +348,14 @@ function hookUiZoom(win) {
   });
 }
 
+// Mac: без меню не работают Cmd+C / Cmd+V / Cmd+Q — ставим стандартное
+if (IS_MAC) app.whenReady().then(() => {
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: app.name, submenu: [{ role: 'about', label: 'О программе' }, { type: 'separator' }, { role: 'hide', label: 'Скрыть' }, { role: 'hideOthers', label: 'Скрыть остальные' }, { type: 'separator' }, { role: 'quit', label: 'Выйти' }] },
+    { label: 'Правка', submenu: [{ role: 'cut', label: 'Вырезать' }, { role: 'copy', label: 'Копировать' }, { role: 'paste', label: 'Вставить' }, { role: 'selectAll', label: 'Выбрать всё' }] },
+    { label: 'Окно', submenu: [{ role: 'minimize', label: 'Свернуть' }, { role: 'zoom', label: 'Развернуть' }, { role: 'togglefullscreen', label: 'Во весь экран' }, { role: 'close', label: 'Закрыть' }] },
+  ]));
+});
 app.whenReady().then(() => {
   try { setupUpdater(); } catch (e) { updLog('setupUpdater', e); }
   createWindow();
@@ -324,7 +365,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  app.quit(); // и на Mac: закрыли окно — программа завершается (запись трансляции останавливается аккуратно)
 });
 
 // ---------- settings & project persistence ----------
@@ -1223,6 +1264,33 @@ ipcMain.handle('coach-export', async (event, { json, name }) => {
   catch (e) { return { ok: false, error: e.message || String(e) }; }
 });
 ipcMain.handle('coach-show-file', async (event, p) => { try { shell.showItemInFolder(p); } catch (e) {} return { ok: true }; });
+// Видео-пример к упражнению: файл копируется в библиотеку Тренерской (coach\videos) — не пропадёт, если оригинал удалят
+const COACH_VIDEO_EXT = /\.(mp4|m4v|mov|webm|mkv)$/i;
+function coachVideoCopy(src) {
+  if (!COACH_VIDEO_EXT.test(src)) return { ok: false, error: 'Нужен видеофайл (mp4, mov, m4v, webm).' };
+  let st; try { st = fs.statSync(src); } catch (e) { return { ok: false, error: 'Файл не найден.' }; }
+  if (st.size > 2 * 1024 * 1024 * 1024) return { ok: false, error: 'Файл больше 2 ГБ — обрежьте пример покороче.' };
+  const dir = path.join(coachDir(), 'videos'); fs.mkdirSync(dir, { recursive: true });
+  const file = crypto.randomBytes(6).toString('hex') + path.extname(src).toLowerCase();
+  fs.copyFileSync(src, path.join(dir, file));
+  return { ok: true, file, name: path.basename(src), size: st.size };
+}
+ipcMain.handle('coach-video-add', async (event, srcPath) => {
+  try {
+    let src = srcPath;
+    if (!src) {
+      const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), { title: 'Видео — пример выполнения', properties: ['openFile'], filters: [{ name: 'Видео', extensions: ['mp4', 'm4v', 'mov', 'webm', 'mkv'] }] });
+      if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
+      src = r.filePaths[0];
+    }
+    return coachVideoCopy(src);
+  } catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+ipcMain.handle('coach-video-path', async (event, file) => {
+  const p = path.join(coachDir(), 'videos', path.basename(String(file || '')));
+  return fs.existsSync(p) ? p : '';
+});
+ipcMain.handle('coach-open-url', async (event, url) => { if (/^https?:\/\//i.test(String(url || ''))) shell.openExternal(String(url)); return { ok: true }; });
 
 let liveQuitting = false;
 app.on('before-quit', (e) => {

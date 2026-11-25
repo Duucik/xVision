@@ -44,10 +44,7 @@
       "coach-print.css",
       "logos/*.png",
       "build/*.png",
-      "fonts/*.woff",
-      "!**/node_modules/onnxruntime-node/bin/napi-v3/linux/**",
-      "!**/node_modules/onnxruntime-node/bin/napi-v3/darwin/**",
-      "!**/node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**"
+      "fonts/*.woff"
     ],
     "asarUnpack": [
       "**/node_modules/ffmpeg-static/**",
@@ -55,7 +52,12 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "files": [
+        "!**/node_modules/onnxruntime-node/bin/napi-v3/linux/**",
+        "!**/node_modules/onnxruntime-node/bin/napi-v3/darwin/**",
+        "!**/node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -96,7 +98,8 @@
         "from": "bin",
         "to": "bin",
         "filter": [
-          "yt-dlp.exe"
+          "yt-dlp.exe",
+          "yt-dlp"
         ]
       }
     ],
@@ -107,7 +110,33 @@
         "repo": "xVision",
         "releaseType": "release"
       }
-    ]
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg"
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.sports",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "artifactName": "xVision-ITAA-${version}-${arch}.${ext}",
+      "files": [
+        "!**/node_modules/onnxruntime-node/bin/napi-v3/linux/**",
+        "!**/node_modules/onnxruntime-node/bin/napi-v3/win32/**"
+      ],
+      "extendInfo": {
+        "NSCameraUsageDescription": "Не используется",
+        "LSApplicationCategoryType": "public.app-category.sports"
+      }
+    },
+    "dmg": {
+      "title": "xVision ITAA ${version}",
+      "artifactName": "xVision-ITAA-${version}-${arch}.${ext}"
+    },
+    "afterSign": "build/mac-adhoc-sign.js"
   },
   "xvProduct": "itaa",
   "repository": "https://github.com/Duucik/xVision"
