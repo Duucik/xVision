@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, utilityProcess, shell, screen, net, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, utilityProcess, shell, screen, net, clipboard, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -146,6 +146,83 @@ ipcMain.handle('update-info', () => {
   return Object.assign({}, updState, { current: cur, whatsNew });
 });
 ipcMain.handle('update-notes', () => changelogSections().slice(0, 6).map((s) => s.text).join('\n\n\n'));
+
+// ---------- выпуск версий (только Создатель) ----------
+// Новые версии выходят на GitHub тестовыми. Здесь Создатель сам решает, какая версия — «для всех»:
+// программа меняет отметки релизов на GitHub. Для этого нужен токен GitHub (вводится один раз, хранится зашифрованным).
+const GH_API = process.env.XV_GH_API || 'https://api.github.com';
+const ghRepo = () => { try { const p = require('./package.json').build.publish[0]; return p.owner + '/' + p.repo; } catch (e) { return 'Duucik/xVision'; } };
+const ghTokenFile = () => path.join(app.getPath('userData'), 'gh-token.bin');
+function ghTokenGet() {
+  try {
+    const b = fs.readFileSync(ghTokenFile());
+    return safeStorage && safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(b) : b.toString('utf8');
+  } catch (e) { return ''; }
+}
+function ghTokenPut(tok) {
+  if (!tok) { try { fs.unlinkSync(ghTokenFile()); } catch (e) {} return; }
+  const b = safeStorage && safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(tok) : Buffer.from(tok, 'utf8');
+  fs.writeFileSync(ghTokenFile(), b);
+}
+function ghReq(method, p, body, tok) {
+  return new Promise((resolve) => {
+    let req, done = false, timer;
+    const fin = (r) => { if (done) return; done = true; clearTimeout(timer); resolve(r); };
+    try { req = net.request({ method, url: GH_API + p, redirect: 'follow' }); } catch (e) { return fin({ status: 0, error: e.message }); }
+    req.setHeader('Accept', 'application/vnd.github+json');
+    req.setHeader('User-Agent', 'xVision');
+    req.setHeader('X-GitHub-Api-Version', '2022-11-28');
+    if (tok) req.setHeader('Authorization', 'Bearer ' + tok);
+    if (body) req.setHeader('Content-Type', 'application/json');
+    timer = setTimeout(() => { try { req.abort(); } catch (e) {} fin({ status: 0, error: 'GitHub не отвечает' }); }, 20000);
+    req.on('response', (res) => { let b = ''; res.on('data', (c) => { b += c; }); res.on('end', () => { let j = null; try { j = JSON.parse(b); } catch (e) {} fin({ status: res.statusCode, json: j }); }); });
+    req.on('error', (e) => fin({ status: 0, error: e.message }));
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+const relVer = (tag) => String(tag || '').replace(/^v/i, '');
+ipcMain.handle('rel-state', async () => {
+  if (!isCreator()) return { allowed: false };
+  return { allowed: true, hasToken: !!ghTokenGet(), repo: ghRepo() };
+});
+ipcMain.handle('rel-token', async (e, tok) => {
+  if (!isCreator()) return { ok: false, error: 'Только для ключа Создателя.' };
+  tok = String(tok || '').trim();
+  if (!tok) { ghTokenPut(''); return { ok: true }; }
+  const r = await ghReq('GET', '/repos/' + ghRepo(), null, tok);
+  if (r.status === 401) return { ok: false, error: 'GitHub не принял токен — проверьте, что он скопирован целиком и не просрочен.' };
+  if (r.status !== 200) return { ok: false, error: 'Нет доступа к репозиторию ' + ghRepo() + (r.status ? ' (ответ ' + r.status + ')' : ': ' + (r.error || 'нет связи')) };
+  if (r.json && r.json.permissions && !r.json.permissions.push) return { ok: false, error: 'У токена нет права записи в ' + ghRepo() + ' — дайте ему «Contents: Read and write».' };
+  ghTokenPut(tok);
+  return { ok: true };
+});
+ipcMain.handle('rel-list', async () => {
+  if (!isCreator()) return { ok: false, error: 'Только для ключа Создателя.' };
+  const tok = ghTokenGet();
+  const [a, l] = await Promise.all([ghReq('GET', '/repos/' + ghRepo() + '/releases?per_page=15', null, tok), ghReq('GET', '/repos/' + ghRepo() + '/releases/latest', null, tok)]);
+  if (a.status !== 200 || !Array.isArray(a.json)) return { ok: false, error: a.status === 403 ? 'GitHub временно ограничил запросы — попробуйте через несколько минут.' : 'Не удалось получить список версий' + (a.error ? ': ' + a.error : ' (ответ ' + a.status + ')') };
+  const latest = l.status === 200 && l.json ? l.json.tag_name : '';
+  const items = a.json.filter((x) => !x.draft).map((x) => ({ id: x.id, tag: x.tag_name, version: relVer(x.tag_name), prerelease: !!x.prerelease, latest: x.tag_name === latest, date: x.published_at || x.created_at, url: x.html_url }))
+    .sort((x, y) => verNum(y.version) - verNum(x.version));
+  return { ok: true, items, latest: relVer(latest), current: app.getVersion() };
+});
+// сделать версию «для всех»: она становится последней обычной, более новые — снова тестовыми
+ipcMain.handle('rel-publish', async (e, tag) => {
+  if (!isCreator()) return { ok: false, error: 'Только для ключа Создателя.' };
+  const tok = ghTokenGet(); if (!tok) return { ok: false, error: 'Сначала введите токен GitHub.' };
+  const all = await ghReq('GET', '/repos/' + ghRepo() + '/releases?per_page=30', null, tok);
+  if (all.status !== 200 || !Array.isArray(all.json)) return { ok: false, error: 'Не удалось получить список версий (ответ ' + all.status + ')' };
+  const target = all.json.find((x) => x.tag_name === tag);
+  if (!target) return { ok: false, error: 'Версия ' + tag + ' не найдена.' };
+  const r = await ghReq('PATCH', '/repos/' + ghRepo() + '/releases/' + target.id, { prerelease: false, make_latest: 'true' }, tok);
+  if (r.status !== 200) return { ok: false, error: r.status === 403 || r.status === 404 ? 'У токена нет права менять релизы (нужно «Contents: Read and write»).' : 'GitHub ответил ' + (r.status || r.error) };
+  const newer = all.json.filter((x) => !x.draft && !x.prerelease && x.id !== target.id && verNum(relVer(x.tag_name)) > verNum(relVer(tag))).sort((x, y) => verNum(relVer(x.tag_name)) - verNum(relVer(y.tag_name)));
+  for (const x of newer) await ghReq('PATCH', '/repos/' + ghRepo() + '/releases/' + x.id, { prerelease: true }, tok);
+  updLog('выпуск для всех: ' + tag + (newer.length ? ' (снова тестовые: ' + newer.map((x) => x.tag_name).join(', ') + ')' : ''));
+  return { ok: true, tag, demoted: newer.map((x) => relVer(x.tag_name)) };
+});
+ipcMain.handle('open-github', (e, url) => { if (/^https:\/\/github\.com\//.test(String(url || ''))) shell.openExternal(url); return true; });
 ipcMain.handle('update-beta', (e, on) => {
   if (on == null || !isCreator()) return { on: betaOn(), allowed: isCreator() };
   try { fs.writeFileSync(betaFile(), JSON.stringify({ beta: !!on })); } catch (err) {}

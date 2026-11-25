@@ -444,6 +444,27 @@
   .lic-info { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 6px 0 10px; }
   .lic-info b { color: var(--text); font-weight: 600; }
   .upd-btn .ic { width: 14px; height: 14px; }
+  .rel-box { margin-top: 12px; padding: 12px; border-radius: 10px; border: 1px solid var(--border2); background: rgba(255,255,255,0.02); }
+  .rel-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .rel-head .rel-sub { font-size: 11px; color: var(--faint); flex: 1; }
+  .rel-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+  .rel-note b { color: var(--text); font-weight: 600; }
+  .rel-row { display: flex; gap: 6px; margin-top: 8px; }
+  .rel-row input { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border2); color: var(--text); font-size: 12px; }
+  .rel-row input:focus { outline: none; border-color: var(--accent); }
+  .rel-err { color: #FF8A8E; font-size: 11.5px; margin-top: 6px; min-height: 0; }
+  .rel-list { display: flex; flex-direction: column; gap: 4px; }
+  .rel-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(12,12,14,0.5); border: 1px solid var(--border); font-size: 12.5px; }
+  .rel-item.on { border-color: rgba(63,185,122,0.55); }
+  .rel-item .v { font-weight: 700; min-width: 48px; font-variant-numeric: tabular-nums; }
+  .rel-item .d { color: var(--faint); font-size: 11.5px; flex: 1; }
+  .rel-item .st { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .rel-item .st.all { background: rgba(63,185,122,0.15); color: #6FD39C; }
+  .rel-item .st.test { background: var(--accent-soft); color: var(--accent); }
+  .rel-item .st.old { color: var(--faint); }
+  .rel-item .tbtn.sm { height: 24px; font-size: 11.5px; padding: 0 9px; }
+  .rel-foot { display: flex; align-items: flex-start; gap: 10px; margin-top: 8px; }
+  .rel-foot .rel-note { flex: 1; }
   .upd-beta { display: flex; gap: 9px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; border-radius: 9px; border: 1px dashed var(--accent-line); background: var(--accent-soft); font-size: 12px; color: var(--muted); line-height: 1.45; cursor: pointer; }
   .upd-beta b { color: var(--text); font-weight: 600; }
   .upd-beta input { margin-top: 2px; accent-color: var(--accent); }
@@ -1442,7 +1463,17 @@
       <div class="settings-section-title">Обновления</div>
       <div class="lic-info" id="updInfo">—</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="tbtn sm" id="updCheckBtn">Проверить сейчас</button><button type="button" class="tbtn sm" id="updNotesBtn">Что нового</button></div>
-      <label class="upd-beta" id="updBetaRow" style="display:none"><input type="checkbox" id="updBeta"><span><b>Тестовые версии — только мне</b><br>Новая версия сначала приходит только на этот компьютер. Всем — после «Выпустить для всех» на GitHub.</span></label>
+      <div class="rel-box" id="relBox" style="display:none">
+        <div class="rel-head"><b>Выпуск версий</b><span class="rel-sub">только для Создателя</span><button type="button" class="link-btn" id="relRefresh">Обновить список</button></div>
+        <div class="rel-token" id="relTokenBox">
+          <div class="rel-note">Чтобы выпускать версии отсюда, нужен токен GitHub — один раз. GitHub → Settings → Developer settings → Fine-grained tokens → <b>Generate new token</b>: репозиторий <b id="relRepo">Duucik/xVision</b>, право <b>Contents: Read and write</b>, срок — год. Скопируйте токен сюда.</div>
+          <div class="rel-row"><input type="password" id="relTokenIn" placeholder="github_pat_…" spellcheck="false" autocomplete="off"><button type="button" class="tbtn sm primary" id="relTokenSave">Сохранить</button><button type="button" class="tbtn sm" id="relTokenHelp">Открыть GitHub</button></div>
+          <div class="rel-err" id="relTokenErr"></div>
+        </div>
+        <div class="rel-list" id="relList"></div>
+        <div class="rel-foot" id="relFoot"><span class="rel-note">Программы у всех обновятся до версии с отметкой «для всех». Более новые останутся тестовыми — их получаете только вы.</span><button type="button" class="link-btn" id="relTokenDrop">Удалить токен</button></div>
+      </div>
+      <label class="upd-beta" id="updBetaRow" style="display:none"><input type="checkbox" id="updBeta"><span><b>Тестовые версии — только мне</b><br>Новая версия сначала приходит только на этот компьютер. Всем — кнопкой «Выпустить для всех» выше.</span></label>
     </div>
 
     <div class="settings-section">
@@ -5581,6 +5612,60 @@
     if (r && r.on) $('updCheckBtn').click();
   });
   refreshBeta();
+  // ---------- выпуск версий (Создатель) ----------
+  async function relRender() {
+    let st = null; try { st = await window.api.relState(); } catch (e) {}
+    $('relBox').style.display = st && st.allowed ? '' : 'none';
+    if (!st || !st.allowed) return;
+    $('relRepo').textContent = st.repo;
+    $('relTokenBox').style.display = st.hasToken ? 'none' : '';
+    $('relFoot').style.display = st.hasToken ? '' : 'none';
+    $('relRefresh').style.display = st.hasToken ? '' : 'none';
+    if (!st.hasToken) { $('relList').innerHTML = ''; return; }
+    $('relList').innerHTML = '<div class="rel-note">Загружаю список версий…</div>';
+    const r = await window.api.relList();
+    if (!r || !r.ok) { $('relList').innerHTML = '<div class="rel-err">' + esc((r && r.error) || 'Не удалось получить список версий') + '</div>'; return; }
+    const lv = verNumR(r.latest);
+    $('relList').innerHTML = r.items.slice(0, 8).map((x) => {
+      const n = verNumR(x.version), d = x.date ? new Date(x.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '';
+      const st2 = x.latest ? '<span class="st all">для всех</span>' : x.prerelease ? '<span class="st test">тестовая</span>' : '<span class="st old">прошлая</span>';
+      const mine = x.version === r.current ? ' · у вас' : '';
+      const btn = x.latest ? '' : '<button type="button" class="tbtn sm" data-rel="' + esc(x.tag) + '">' + (n > lv ? 'Выпустить для всех' : 'Вернуть для всех') + '</button>';
+      return '<div class="rel-item' + (x.latest ? ' on' : '') + '"><span class="v">' + esc(x.version) + '</span><span class="d">' + esc(d + mine) + '</span>' + st2 + btn + '</div>';
+    }).join('') || '<div class="rel-note">Версий пока нет.</div>';
+  }
+  const verNumR = (v) => String(v || '0').split('.').map((x) => parseInt(x, 10) || 0).reduce((a, x) => a * 1000 + x, 0);
+  $('relList').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-rel]'); if (!b) return;
+    const tag = b.dataset.rel, v = tag.replace(/^v/i, '');
+    const items = [...$('relList').querySelectorAll('.rel-item')];
+    const cur = items.find((x) => x.classList.contains('on')), curV = cur ? cur.querySelector('.v').textContent : '';
+    const back = verNumR(v) < verNumR(curV);
+    const ok = await confirmDialog({ title: (back ? 'Вернуть для всех версию ' : 'Выпустить для всех версию ') + v + '?',
+      text: back ? 'Те, у кого ещё не стоит ' + curV + ', больше не получат её — будут обновляться только до ' + v + '. У кого ' + curV + ' уже установлена, она останется (назад программа не откатывается). ' + curV + ' снова станет тестовой — только у вас.'
+        : 'Программы у всех пользователей скачают ' + v + ' при следующем запуске (или в течение 3 часов, если открыты).',
+      ok: back ? 'Вернуть ' + v : 'Выпустить', cancel: t('hl_del_cancel') });
+    if (!ok) return;
+    b.disabled = true; b.textContent = '…';
+    const r = await window.api.relPublish(tag);
+    if (!r || !r.ok) { toast((r && r.error) || 'Не получилось', true); relRender(); return; }
+    toast('Версия ' + v + ' — для всех' + (r.demoted && r.demoted.length ? '; снова тестовые: ' + r.demoted.join(', ') : ''));
+    relRender();
+  });
+  $('relRefresh').addEventListener('click', relRender);
+  $('relTokenSave').addEventListener('click', async () => {
+    $('relTokenErr').textContent = '';
+    const tok = $('relTokenIn').value.trim(); if (!tok) { $('relTokenIn').focus(); return; }
+    $('relTokenSave').disabled = true;
+    const r = await window.api.relToken(tok);
+    $('relTokenSave').disabled = false;
+    if (!r || !r.ok) { $('relTokenErr').textContent = (r && r.error) || 'Не получилось'; return; }
+    $('relTokenIn').value = ''; toast('Токен сохранён'); relRender();
+  });
+  $('relTokenIn').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') $('relTokenSave').click(); });
+  $('relTokenHelp').addEventListener('click', () => window.api.openGithub('https://github.com/settings/personal-access-tokens/new'));
+  $('relTokenDrop').addEventListener('click', async () => { await window.api.relToken(''); relRender(); });
+  $('settingsBtn').addEventListener('click', () => setTimeout(relRender, 50));
   $('updNotesBtn').addEventListener('click', async () => { const t = await window.api.updateNotes(); showWhatsNew('Что нового в xVision', t || 'Список изменений не найден.'); });
   if (window.api.onUpdateStatus) window.api.onUpdateStatus((s) => { updS = Object.assign(updS, s); renderUpd(); });
   (async () => {
