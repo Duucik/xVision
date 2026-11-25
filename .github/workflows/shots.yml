@@ -6,6 +6,7 @@ permissions:
   contents: write
 jobs:
   win:
+    if: false
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -36,12 +37,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: win, path: out }
   mac:
-    if: false
+    strategy:
+      fail-fast: false
+      matrix:
+        node_arch: [arm64, x64]
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
-        with: { node-version: 20 }
+        with: { node-version: 20, architecture: '${{ matrix.node_arch }}' }
       - run: npm install --no-audit --no-fund
       - run: node prepare-build.js
       - env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
@@ -49,19 +53,22 @@ jobs:
       - name: Снимок окна установки
         run: |
           mkdir -p out
-          ls -la dist build/background.tiff
+          node -p process.arch
           DMG=$(ls dist/*.dmg | head -1)
+          hdiutil imageinfo "$DMG" | grep -i -E "format|partition|fs" | head
           hdiutil attach "$DMG" -noautoopen
           VOL=$(ls -d /Volumes/xVision* | head -1)
-          open "$VOL"; sleep 6
-          screencapture -x out/mac-light.png || true
+          ls -la "$VOL" "$VOL/.background" || true
+          diskutil info "$VOL" | grep -i "file system" || true
+          open "$VOL"; sleep 8
+          screencapture -x out/mac-${{ matrix.node_arch }}-light.png || true
           osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || true
-          sleep 3; screencapture -x out/mac-dark.png || true
+          sleep 3; screencapture -x out/mac-${{ matrix.node_arch }}-dark.png || true
           ls -la out
       - uses: actions/upload-artifact@v4
-        with: { name: mac, path: out }
+        with: { name: 'mac-${{ matrix.node_arch }}', path: out }
   publish:
-    needs: [win, mac]
+    needs: [mac]
     if: always()
     runs-on: ubuntu-latest
     steps:

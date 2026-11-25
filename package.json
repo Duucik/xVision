@@ -134,7 +134,7 @@
     },
     "dmg": {
       "title": "xVision ITAA ${version}",
-      "background": "build/background.tiff",
+      "background": "build/dmg-background.png",
       "iconSize": 110,
       "window": { "width": 660, "height": 420 },
       "contents": [
