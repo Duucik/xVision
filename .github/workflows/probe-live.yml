@@ -35,6 +35,7 @@ jobs:
           U1: ${{ inputs.url }}
           U2: ${{ inputs.url2 }}
         run: |
+          set +e +o pipefail
           mkdir -p /tmp/probe && cd /tmp/probe
           yt-dlp --version > yt-dlp-version.txt
           i=0
