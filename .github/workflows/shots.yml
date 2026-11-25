@@ -26,13 +26,17 @@ jobs:
           $ws = New-Object -ComObject WScript.Shell
           Start-Sleep 10; $ws.AppActivate($p.Id) | Out-Null; Start-Sleep 1; Shot 1
           $ws.SendKeys('{ENTER}'); Start-Sleep 3; Shot 2
-          $ws.AppActivate($p.Id) | Out-Null; $ws.SendKeys('{ENTER}'); Start-Sleep 3; Shot 3
+          $ws.AppActivate($p.Id) | Out-Null; $ws.SendKeys('{ENTER}'); Start-Sleep 1; Shot 3a; "after2 exited=$($p.HasExited)" | Out-File out/win-pre.txt; Start-Sleep 2; Shot 3
           $ws.AppActivate($p.Id) | Out-Null; $ws.SendKeys('{ENTER}'); Start-Sleep 2; Shot 4
           Start-Sleep 60; Shot 5
+          "exited=$($p.HasExited) code=$($p.ExitCode)" | Out-File out/win-log.txt
+          Get-Content "$env:TEMP\xvdark.log" -ErrorAction SilentlyContinue | Out-File -Append out/win-log.txt
+          Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=(Get-Date).AddMinutes(-5)} -ErrorAction SilentlyContinue | Where-Object { $_.LevelDisplayName -eq 'Error' } | Select-Object -First 5 | Format-List TimeCreated,ProviderName,Message | Out-File -Append out/win-log.txt
           Get-Process | Where-Object { $_.ProcessName -like 'xVision*' } | Stop-Process -Force -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
         with: { name: win, path: out }
   mac:
+    if: false
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5

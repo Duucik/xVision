@@ -38,11 +38,24 @@
     Pop $0
   FunctionEnd
 
+  Function xvLog
+    Exch $9
+    Push $8
+    FileOpen $8 "$TEMP\xvdark.log" a
+    FileSeek $8 0 END
+    FileWrite $8 "$9$\r$\n"
+    FileClose $8
+    Pop $8
+    Pop $9
+  FunctionEnd
+
   Function xvDarkPage
     Push $0
     Push $1
     Push $2
     Push $3
+    Push "page start"
+    Call xvLog
     Call xvDarkOuter
     FindWindow $0 "#32770" "" $HWNDPARENT ; внутреннее окно страницы
     ${If} $0 == 0
@@ -62,6 +75,8 @@
         ${Break}
       ${EndIf}
       System::Call 'user32::GetClassNameW(p r1, w .r2, i 64)'
+      Push "ctl $1 $2"
+      Call xvLog
       ${If} $2 == "Edit"
         SetCtlColors $1 "F2F2F4" "1A1B20"
       ${ElseIf} $2 == "Button"
@@ -84,6 +99,8 @@
       ${EndIf}
     ${Loop}
     System::Call 'user32::InvalidateRect(p r0, p 0, i 1)'
+    Push "page done $0"
+    Call xvLog
     xvDarkDone:
     Pop $3
     Pop $2
@@ -94,6 +111,8 @@
   ; Страница выбора папки: своего «показа» у неё в electron-builder нет,
   ; но эта функция Windows вызывается сразу при открытии страницы — там и перекрашиваем.
   Function .onVerifyInstDir
+    Push "verify $INSTDIR"
+    Call xvLog
     Call xvDarkPage
   FunctionEnd
 !macroend
