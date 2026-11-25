@@ -125,6 +125,11 @@ jobs:
           test -x "$APP/Contents/Resources/bin/yt-dlp" || echo "::warning::нет загрузчика видео"
           codesign -dv "$APP" 2>&1 | head -3
           file "$APP/Contents/MacOS/"* | head -2
+          # запуск: окно открывается, ffmpeg / загрузчик / нейросеть работают
+          XV_SMOKE=1 "$APP/Contents/MacOS/xVision ITAA" > smoke.log 2>&1 &
+          for i in $(seq 1 60); do grep -q SMOKE smoke.log && break; sleep 1; done
+          grep SMOKE smoke.log || { echo "::error::программа не запустилась"; tail -30 smoke.log; exit 1; }
+          if grep SMOKE smoke.log | grep -q ОШИБКА; then echo "::warning::$(grep SMOKE smoke.log)"; fi
       - name: В релиз
         if: inputs.check_only != true
         shell: bash

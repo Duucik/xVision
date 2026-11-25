@@ -306,6 +306,17 @@ function createWindow() {
   win.show();
   mainWin = win;
   win.loadFile(licOk() ? 'index.html' : 'license.html');
+  // проверка сборки на сервере (XV_SMOKE=1): окно открылось, ffmpeg, загрузчик и нейросеть запускаются — и выходим
+  if (process.env.XV_SMOKE) win.webContents.once('did-finish-load', async () => {
+    const out = [];
+    try { out.push('окно: ' + win.webContents.getURL().split('/').pop()); } catch (e) {}
+    try { out.push('код: ' + require('./license-core').machineCode()); } catch (e) { out.push('код: ОШИБКА ' + e.message); }
+    try { out.push('ffmpeg: ' + require('child_process').execFileSync(ffmpegPath, ['-version']).toString().split('\n')[0].slice(0, 40)); } catch (e) { out.push('ffmpeg: ОШИБКА ' + e.message); }
+    try { out.push('yt-dlp: ' + require('child_process').execFileSync(loaderOpts().bundled, ['--version']).toString().trim()); } catch (e) { out.push('yt-dlp: ОШИБКА ' + e.message); }
+    try { const ort = require('onnxruntime-node'); out.push('нейросеть: ' + (ort && ort.InferenceSession ? 'ok' : 'нет')); } catch (e) { out.push('нейросеть: ОШИБКА ' + e.message); }
+    console.log('SMOKE ' + out.join(' | '));
+    setTimeout(() => app.exit(0), 500);
+  });
   // win.webContents.openDevTools();
 }
 
