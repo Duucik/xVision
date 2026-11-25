@@ -21,8 +21,86 @@
 ; Первая страница: приветствие
 !macro customWelcomePage
   !define MUI_WELCOMEPAGE_TITLE "Установка xVision ITAA"
-  !define MUI_WELCOMEPAGE_TEXT "Хоккейная видеоаналитика: нарезка клипов, теги, рисование поверх видео и ИИ-подсветка игроков.$\r$\n$\r$\nЭто версия xVision в оформлении ITAA. Она ставится отдельно и не затрагивает обычную xVision, если та уже установлена: у каждой свой ярлык и свои данные.$\r$\n$\r$\nПеред установкой закройте xVision ITAA, если она открыта. Нажмите «Далее», чтобы продолжить."
+  !define MUI_WELCOMEPAGE_TEXT "Хоккейная видеоаналитика: нарезка клипов, теги, рисование поверх видео, ИИ-подсветка игроков, работа с трансляцией и тренерская.$\r$\n$\r$\nДальше программа обновляется сама — новые установщики скачивать не нужно.$\r$\n$\r$\nПеред установкой закройте xVision ITAA, если она открыта. Нажмите «Далее», чтобы продолжить."
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW xvDarkOuter
   !insertmacro MUI_PAGE_WELCOME
+  ; следующая страница («Для кого установить») получает тёмное оформление при показе
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW xvDarkPage
+
+  ; ---------- тёмные внутренние страницы ----------
+  ; Внешнее окно (полоса с кнопками внизу) и всё содержимое текущей страницы перекрашиваются в цвета программы.
+  Function xvDarkOuter
+    Push $0
+    SetCtlColors $HWNDPARENT "F2F2F4" "0D0E10"
+    GetDlgItem $0 $HWNDPARENT 1028 ; строка с названием внизу слева
+    SetCtlColors $0 "6E6E78" "0D0E10"
+    System::Call 'user32::InvalidateRect(p $HWNDPARENT, p 0, i 1)'
+    Pop $0
+  FunctionEnd
+
+  Function xvDarkPage
+    Push $0
+    Push $1
+    Push $2
+    Push $3
+    Call xvDarkOuter
+    FindWindow $0 "#32770" "" $HWNDPARENT ; внутреннее окно страницы
+    ${If} $0 == 0
+      Goto xvDarkDone
+    ${EndIf}
+    ; страницу уже перекрасили (функция может вызываться повторно, например при вводе пути)
+    System::Call 'user32::GetPropW(p r0, w "xvDark") p .r2'
+    ${If} $2 != 0
+      Goto xvDarkDone
+    ${EndIf}
+    System::Call 'user32::SetPropW(p r0, w "xvDark", p 1)'
+    SetCtlColors $0 "F2F2F4" "0D0E10"
+    StrCpy $1 0
+    ${Do}
+      FindWindow $1 "" "" $0 $1
+      ${If} $1 == 0
+        ${Break}
+      ${EndIf}
+      System::Call 'user32::GetClassNameW(p r1, w .r2, i 64)'
+      ${If} $2 == "Edit"
+        SetCtlColors $1 "F2F2F4" "1A1B20"
+      ${ElseIf} $2 == "Button"
+        System::Call 'user32::GetWindowLongW(p r1, i -16) i .r3'
+        IntOp $3 $3 & 0xF
+        ${If} $3 >= 2 ; флажки, переключатели, рамки — у обычных кнопок оставляем системный вид
+          System::Call 'uxtheme::SetWindowTheme(p r1, w " ", w " ")'
+          SetCtlColors $1 "F2F2F4" "0D0E10"
+        ${EndIf}
+      ${ElseIf} $2 == "msctls_progress32"
+        System::Call 'uxtheme::SetWindowTheme(p r1, w " ", w " ")'
+        SendMessage $1 0x0409 0 0x003C34E3 ; цвет полосы — красный xVision
+        SendMessage $1 0x2001 0 0x00201B1A ; фон полосы
+      ${ElseIf} $2 == "SysListView32"
+        SendMessage $1 0x1001 0 0x00100E0D
+        SendMessage $1 0x1024 0 0x00F4F2F2
+        SendMessage $1 0x1026 0 0x00100E0D
+      ${Else}
+        SetCtlColors $1 "F2F2F4" "0D0E10"
+      ${EndIf}
+    ${Loop}
+    System::Call 'user32::InvalidateRect(p r0, p 0, i 1)'
+    xvDarkDone:
+    Pop $3
+    Pop $2
+    Pop $1
+    Pop $0
+  FunctionEnd
+
+  ; Страница выбора папки: своего «показа» у неё в electron-builder нет,
+  ; но эта функция Windows вызывается сразу при открытии страницы — там и перекрашиваем.
+  Function .onVerifyInstDir
+    Call xvDarkPage
+  FunctionEnd
+!macroend
+
+; Страница установки (полоса прогресса)
+!macro customPageAfterChangeDir
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW xvDarkPage
 !macroend
 
 ; Последняя страница: «Запустить xVision» и «Создать ярлык на рабочем столе»
@@ -58,6 +136,7 @@
   FunctionEnd
 
   Function xvFinishShow
+    Call xvDarkOuter
     ; на тёмном фоне у флажков Windows рисует чёрный текст — переводим их в простой стиль, тогда цвет текста применяется
     System::Call 'uxtheme::SetWindowTheme(p $mui.FinishPage.Run, w " ", w " ")'
     System::Call 'uxtheme::SetWindowTheme(p $mui.FinishPage.ShowReadme, w " ", w " ")'
