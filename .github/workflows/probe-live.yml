@@ -9,7 +9,7 @@ on:
         description: 'Ссылка на трансляцию'
         required: true
       url2:
-        description: 'Вторая ссылка (необязательно)'
+        description: 'Ещё ссылки через пробел (необязательно)'
         required: false
         default: ''
 
@@ -21,6 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - name: Инструменты
         run: |
           pip install -U "yt-dlp[default]" > /dev/null
@@ -35,7 +38,7 @@ jobs:
           mkdir -p /tmp/probe && cd /tmp/probe
           yt-dlp --version > yt-dlp-version.txt
           i=0
-          for U in "$U1" "$U2"; do
+          for U in $U1 $U2; do
             [ -z "$U" ] && continue; i=$((i+1)); N="s$i"; echo "$U" > $N.url.txt
             echo "== $N $U"
             yt-dlp -v -J "$U" > $N.json 2> $N.info.err.txt || true
@@ -54,6 +57,10 @@ jobs:
               rm -f $N.master.m3u8 $N.variant.m3u8
             fi
             rm -f $N.json
+            # страница: есть ли в ней ссылки на поток
+            curl -sL --max-time 20 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36" "$U" -o $N.page.html || true
+            { echo "размер: $(wc -c < $N.page.html)"; grep -oE '[a-zA-Z_]*(hls|m3u8|dash|mpd)[a-zA-Z_]*"?\s*:\s*"[^"]{0,160}' $N.page.html | sed -E 's#(https?:\\?/\\?/[^/\\]+)[^"]*#\1/…#g' | sort | uniq | head -40; grep -oE '"(is_live|live_status|live)"\s*:\s*[^,]{0,20}' $N.page.html | sort | uniq -c | head; } > $N.page.txt 2>&1
+            rm -f $N.page.html
             # 1) живой край → локальный HLS (как будет в программе), 45 секунд
             mkdir -p $N.hls
             timeout 55 bash -c "yt-dlp -q --no-warnings -f 'b[height<=720]/bv*[height<=720]+ba/b' -o - \"\$0\" | ffmpeg -hide_banner -loglevel warning -i pipe:0 -map 0 -c copy -f hls -hls_time 4 -hls_list_size 0 -hls_playlist_type event $N.hls/index.m3u8" "$U" > $N.pipe.log 2>&1 || true
