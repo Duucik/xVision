@@ -209,6 +209,26 @@
   .speed-sel { height: 30px; padding: 0 8px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border2); font-weight: 600; font-size: 12px; }
   .time-label { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-size: 13px; font-weight: 500; white-space: nowrap; min-width: 118px; text-align: center; }
   .time-label .tl-total { color: var(--muted); }
+  /* трансляция */
+  .live-pill { flex: none; height: 24px; padding: 0 10px; border-radius: 12px; border: 1px solid rgba(229,72,77,0.6); background: transparent; color: #FF8A8E; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .live-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .live-pill.at { background: #E5484D; border-color: #E5484D; color: #fff; cursor: default; }
+  .live-pill.at::before { animation: liveBlink 1.4s ease-in-out infinite; }
+  .live-pill.off { border-color: var(--border2); color: var(--muted); cursor: default; }
+  @keyframes liveBlink { 50% { opacity: 0.25; } }
+  .live-strip { display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 8; align-items: center; gap: 9px; padding: 5px 6px 5px 12px; border-radius: 10px;
+    background: rgba(14,14,16,0.88); border: 1px solid var(--border2); font-size: 12px; color: var(--muted); box-shadow: 0 6px 18px rgba(0,0,0,0.4); white-space: nowrap; }
+  .live-strip.show { display: flex; }
+  .live-strip .ls-dot { width: 8px; height: 8px; border-radius: 50%; background: #E5484D; animation: liveBlink 1.4s ease-in-out infinite; }
+  .live-strip.warn .ls-dot { background: #E8B33B; }
+  .live-strip.idle .ls-dot { background: var(--faint); animation: none; }
+  .live-strip b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .live-strip .ls-btn { height: 24px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border2); background: var(--panel2); color: var(--text); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .live-strip .ls-btn:hover { border-color: var(--accent); }
+  .live-strip .ls-btn:empty { display: none; }
+  .live-fs { display: flex; gap: 9px; align-items: flex-start; margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.45; cursor: pointer; }
+  .live-fs b { color: var(--text); font-weight: 600; }
+  .live-fs input { margin-top: 2px; accent-color: var(--accent); }
 
   .slider { position: relative; flex: 1; min-width: 80px; height: 30px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
   .track { position: relative; width: 100%; height: 6px; border-radius: 3px; background: var(--panel3); }
@@ -1042,6 +1062,7 @@
     <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.4v.1"/></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4z"/><path d="M10 20v-6h4v6"/></symbol>
     <symbol id="i-pencil-small" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z"/></symbol>
+    <symbol id="i-live" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M7.8 16.2a6 6 0 0 1 0-8.4"/><path d="M19 5a10 10 0 0 1 0 14"/><path d="M5 19a10 10 0 0 1 0-14"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="i-kbd" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7 14h10"/></symbol>
@@ -1095,6 +1116,7 @@
     </div>
     <div class="home-actions">
       <button class="tbtn primary" id="homeLinkBtn"><svg class="ic"><use href="#i-link"/></svg><span data-i18n="home_link">Загрузить матч по ссылке</span></button>
+      <button class="tbtn" id="homeLiveBtn"><svg class="ic"><use href="#i-live"/></svg><span data-i18n="home_live">Трансляция</span></button>
       <button class="tbtn" id="homeOpenBtn"><svg class="ic"><use href="#i-folder"/></svg><span data-i18n="home_open">Открыть видео матча</span></button>
       <button class="tbtn" id="homeMergeBtn"><svg class="ic"><use href="#i-film"/></svg><span data-i18n="home_merge">Склеить видеоролики</span></button>
     </div>
@@ -1134,6 +1156,7 @@
 
     <section class="work" id="work">
       <div class="stage" id="stage">
+        <div class="live-strip" id="liveStrip"><span class="ls-dot"></span><span class="ls-text" id="liveStripText"></span><button type="button" class="ls-btn" id="liveResumeBtn"></button><button type="button" class="ls-btn" id="liveActBtn"></button></div>
         <div class="video-box" id="videoBox">
           <textarea class="v-text" id="vText" rows="1" spellcheck="false" autocomplete="off"></textarea>
           <video id="video" preload="auto"></video>
@@ -1199,6 +1222,7 @@
           <option value="1.5">1.5×</option><option value="2">2×</option>
         </select>
         <span class="time-label" id="timeLabel">0:00 / 0:00</span>
+        <button type="button" class="live-pill" id="livePill" style="display:none"></button>
         <div class="slider" id="slider">
           <div class="track" id="track">
             <div class="fill" id="fill" style="width:0%"></div>
@@ -1311,6 +1335,36 @@
     <div class="modal-actions">
       <button class="tbtn" id="linkCancelBtn" data-i18n="link_close">Закрыть</button>
       <button class="tbtn primary" id="linkStartBtn"><svg class="ic"><use href="#i-download"/></svg><span id="linkStartLabel" data-i18n="link_start">Скачать и открыть</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="liveOverlay">
+  <div class="modal modal-wide">
+    <h2><svg class="ic"><use href="#i-live"/></svg><span data-i18n="live_title">Трансляция</span></h2>
+    <div class="sub" data-i18n="live_sub">Вставьте ссылку на идущий эфир (VK Видео, YouTube). Программа начнёт записывать его на компьютер и откроет для разметки: теги, рисунки, клипы — как обычно. Отматывать назад можно на любой момент записи, кнопка «В эфир» возвращает к прямому эфиру.</div>
+    <div class="link-input-row">
+      <input type="text" id="liveInput" spellcheck="false" autocomplete="off" placeholder="https://vk.ru/live-… или https://www.youtube.com/watch?v=…" />
+      <button class="tbtn" id="livePasteBtn" data-i18n="link_paste">Вставить</button>
+    </div>
+    <div class="link-opts">
+      <label><span data-i18n="link_quality">Качество</span>
+        <select id="liveQuality"><option value="1080">1080p</option><option value="720" selected>720p</option><option value="480">480p</option></select>
+      </label>
+      <label><span data-i18n="link_login">Вход в аккаунт</span>
+        <select id="liveCookies">
+          <option value="" data-i18n="link_login_none">Не нужен (открытое видео)</option>
+          <option value="firefox">Firefox</option><option value="chrome">Chrome</option><option value="edge">Edge</option><option value="brave">Brave</option><option value="opera">Opera</option><option value="yandex">Yandex Browser</option>
+        </select>
+      </label>
+    </div>
+    <label class="live-fs"><input type="checkbox" id="liveFromStart" checked><span><b data-i18n="live_fs">С начала трансляции</b><br><span data-i18n="live_fs_d">VK Видео: запишется весь эфир с самого начала — программа быстро догонит прямой эфир. YouTube: пока с момента подключения.</span></span></label>
+    <div class="link-note" data-i18n="live_note">Нужен стабильный интернет; если связь пропадёт — программа переподключится сама. Место на диске: около 1 ГБ за час в 720p. Записывайте только эфиры, на которые у вас есть права.</div>
+    <div class="link-prog" id="liveProg"><div class="lp-text"><span id="liveProgText"></span><span></span></div><div class="lp-track"><div class="lp-fill indet"></div></div></div>
+    <div class="link-err" id="liveErr"><div id="liveErrText"></div></div>
+    <div class="modal-actions">
+      <button class="tbtn" id="liveCancelBtn" data-i18n="link_close">Закрыть</button>
+      <button class="tbtn primary" id="liveStartBtn"><svg class="ic"><use href="#i-live"/></svg><span data-i18n="live_start">Подключиться</span></button>
     </div>
   </div>
 </div>
@@ -1445,6 +1499,7 @@
   </div>
 </div>
 
+<script src="vendor/hls.min.js"></script>
 <script>
 (function () {
   // ======================================================================
@@ -1656,7 +1711,16 @@
       hold_badge: 'Пауза на рисунке · {s} с', replay_badge: 'Повтор · {x}', replay_mark: 'Повтор {x} (клик — перейти к кадру)', hold_mark: 'Пауза на рисунке: {s} с (клик — перейти к кадру)', hold_clip: 'Есть пауза на рисунке',
       coach_btn: 'Тренерская', mode_video: 'Видеоаналитика', ui_zoom: 'Масштаб', ctx_play: 'Воспроизвести клип', ctx_rename: 'Переименовать', ctx_delete: 'Удалить клип', ctx_edit: 'Редактировать',
       edited_mark: 'Клип отредактирован в редакторе', edited_short: 'ред.',
-      link_btn: 'По ссылке', home_link: 'Загрузить матч по ссылке', link_title: 'Матч по ссылке',
+      link_btn: 'По ссылке', home_link: 'Загрузить матч по ссылке', home_live: 'Трансляция', live_title: 'Трансляция', live_start: 'Подключиться',
+      live_sub: 'Вставьте ссылку на идущий эфир (VK Видео, YouTube). Программа начнёт записывать его на компьютер и откроет для разметки: теги, рисунки, клипы — как обычно. Отматывать назад можно на любой момент записи, кнопка «В эфир» возвращает к прямому эфиру.',
+      live_note: 'Нужен стабильный интернет; если связь пропадёт — программа переподключится сама. Место на диске: около 1 ГБ за час в 720p. Записывайте только эфиры, на которые у вас есть права.',
+      live_fs: 'С начала трансляции', live_fs_d: 'VK Видео: запишется весь эфир с самого начала — программа быстро догонит прямой эфир. YouTube: пока с момента подключения.',
+      live_catch: 'Догоняю эфир: записано {a} из {b}', live_catch_pill: 'ДОГОНЯЮ',
+      live_connecting: 'Подключаюсь…', live_noplayer: 'Не удалось запустить плеер трансляции', live_onair: 'В ЭФИРЕ', live_go: 'в эфир', live_rec_off: 'ЗАПИСЬ', live_recording: 'Идёт запись эфира:',
+      live_recorded: 'записано', live_reconnect: 'Связь пропала — переподключаюсь', live_ended: 'Трансляция закончилась', live_stopped: 'Запись трансляции остановлена', live_finish: 'Завершить трансляцию',
+      live_make_mp4: 'Сохранить как MP4', live_mp4_prog: 'Сохраняю запись трансляции в MP4… {p}%', live_mp4_fail: 'Не удалось сохранить MP4', live_mp4_done: 'Запись сохранена в MP4 — разбор перенесён на неё',
+      live_ended_toast: 'Трансляция закончилась — запись сохранена. Её можно сохранить как MP4 (кнопка вверху).', live_err_toast: 'Запись трансляции остановилась',
+      live_resume: 'Продолжить запись', live_finish_q: 'Завершить трансляцию?', live_finish_d: 'Запись эфира остановится, а записанное сохранится одним видеофайлом MP4. Теги, клипы и рисунки останутся на месте.', link_title: 'Матч по ссылке',
       link_sub: 'Вставьте ссылку на видео (VK Видео, YouTube и др.) — матч скачается на компьютер и откроется для разбора.',
       link_paste: 'Вставить', link_quality: 'Качество', link_q_best: 'Лучшее', link_login: 'Вход в аккаунт', link_login_none: 'Не нужен (открытое видео)',
       link_note: 'Закрытые видео: войдите в VK в выбранном браузере, затем выберите его здесь. Если Chrome выдаёт ошибку — используйте Firefox. Скачивайте только материалы, на которые у вас есть права.',
@@ -1796,7 +1860,16 @@
       hold_badge: 'Pause on drawing · {s} s', replay_badge: 'Replay · {x}', replay_mark: 'Replay {x} (click to jump to the frame)', hold_mark: 'Pause on drawing: {s} s (click to jump to the frame)', hold_clip: 'Has a pause on drawing',
       coach_btn: 'Coach board', mode_video: 'Video analytics', ui_zoom: 'Zoom', ctx_play: 'Play clip', ctx_rename: 'Rename', ctx_delete: 'Delete clip', ctx_edit: 'Edit',
       edited_mark: 'Clip edited in the editor', edited_short: 'edit',
-      link_btn: 'From link', home_link: 'Download match from link', link_title: 'Match from a link',
+      link_btn: 'From link', home_link: 'Download match from link', home_live: 'Live stream', live_title: 'Live stream', live_start: 'Connect',
+      live_sub: 'Paste a link to a live broadcast (VK Video, YouTube). The program records it to this computer and opens it for tagging as usual. You can rewind to any recorded moment; the “Live” button returns to the live edge.',
+      live_note: 'A stable connection is needed; if it drops, the program reconnects by itself. Disk: about 1 GB per hour at 720p. Record only broadcasts you have rights to.',
+      live_fs: 'From the start of the broadcast', live_fs_d: 'VK Video: the whole broadcast is recorded from the very beginning and quickly catches up with live. YouTube: from the moment you connect for now.',
+      live_catch: 'Catching up: recorded {a} of {b}', live_catch_pill: 'CATCHING UP',
+      live_connecting: 'Connecting…', live_noplayer: 'Could not start the live player', live_onair: 'LIVE', live_go: 'go live', live_rec_off: 'RECORDING', live_recording: 'Recording the broadcast:',
+      live_recorded: 'recorded', live_reconnect: 'Connection lost — reconnecting', live_ended: 'The broadcast has ended', live_stopped: 'Recording stopped', live_finish: 'Finish broadcast',
+      live_make_mp4: 'Save as MP4', live_mp4_prog: 'Saving the recording as MP4… {p}%', live_mp4_fail: 'Could not save MP4', live_mp4_done: 'Saved as MP4 — the analysis moved to it',
+      live_ended_toast: 'The broadcast has ended — the recording is kept. Save it as MP4 with the button at the top.', live_err_toast: 'Recording stopped',
+      live_resume: 'Resume recording', live_finish_q: 'Finish the broadcast?', live_finish_d: 'Recording stops and everything recorded is saved as one MP4 file. Tags, clips and drawings stay.', link_title: 'Match from a link',
       link_sub: 'Paste a video link (VK Video, YouTube, etc.) — the match is downloaded to this computer and opened for analysis.',
       link_paste: 'Paste', link_quality: 'Quality', link_q_best: 'Best', link_login: 'Account login', link_login_none: 'Not needed (public video)',
       link_note: 'Private videos: sign in to VK in the chosen browser, then select it here. If Chrome fails, use Firefox. Download only material you have the rights to.',
@@ -1978,6 +2051,8 @@
   function showHome() {
     flushProjectSave();
     video.pause();
+    if (video._hls) { try { video._hls.destroy(); } catch (e) {} video._hls = null; }
+    liveInfo = null; liveRenderUI();
     cancelRaf();
     if (holdState) endHold(false);
     exitDrawMode();
@@ -2008,6 +2083,143 @@
     } catch (e) {}
     return videoFps;
   }
+  // ---------- трансляция ----------
+  // Запись эфира — список кусочков HLS (vod.m3u8). Его играет hls.js через локальный сервер программы;
+  // пока идёт запись — растущий список: можно отматывать и возвращаться в эфир.
+  const isLivePath = (p) => /\.m3u8$/i.test(p || '');
+  let liveInfo = null; // { vod, active, state, dur, title, url, behind }
+  let liveStartAt = null;
+  async function setVideoSource(el, p, opts) {
+    if (el._hls) { try { el._hls.destroy(); } catch (e) {} el._hls = null; }
+    if (!isLivePath(p)) { el.src = toFileUrl(p); return; }
+    el.removeAttribute('src');
+    if (typeof Hls === 'undefined' || !Hls.isSupported()) { toast(t('live_noplayer'), true); return; }
+    const r = await window.api.hlsUrl({ path: p, live: !!(opts && opts.live) });
+    const hls = new Hls({ enableWorker: true, lowLatencyMode: false, liveSyncDurationCount: 2, liveMaxLatencyDurationCount: 1e9, maxBufferLength: 30, backBufferLength: 60,
+      startPosition: opts && opts.start != null ? opts.start : -1, manifestLoadingMaxRetry: 6, levelLoadingMaxRetry: 1e9, fragLoadingMaxRetry: 8 });
+    el._hls = hls;
+    hls.on(Hls.Events.ERROR, (ev, d) => {
+      if (!d.fatal) return;
+      if (d.type === Hls.ErrorTypes.NETWORK_ERROR) setTimeout(() => { if (el._hls === hls) hls.startLoad(); }, 1500);
+      else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+    });
+    hls.loadSource(r.url);
+    hls.attachMedia(el);
+    return r;
+  }
+  function liveEdge() { const h = video._hls; return h && h.liveSyncPosition != null && isFinite(h.liveSyncPosition) ? h.liveSyncPosition : Math.max(0, (duration || 0) - 4); }
+  function liveRenderUI() {
+    const on = !!liveInfo && liveInfo.vod === currentVideoPath;
+    const pill = $('livePill'), strip = $('liveStrip');
+    pill.style.display = on ? '' : 'none';
+    strip.classList.toggle('show', on);
+    if (!on) return;
+    const act = !!liveInfo.active;
+    const behind = Math.max(0, liveEdge() - video.currentTime);
+    const catching = act && liveInfo.behind > 20; // запись ещё догоняет прямой эфир (VK с начала)
+    pill.className = 'live-pill' + (!act ? ' off' : behind < 10 && !catching ? ' at' : '');
+    pill.textContent = !act ? t('live_rec_off') : behind < 10 ? (catching ? t('live_catch_pill') : t('live_onair')) : '−' + fmt(behind) + ' · ' + t('live_go');
+    strip.classList.toggle('warn', liveInfo.state === 'reconnecting' || liveInfo.state === 'starting');
+    strip.classList.toggle('idle', !act);
+    const recd = '<b>' + fmt(liveInfo.dur || duration || 0) + '</b>';
+    let txt;
+    if (liveInfo.state === 'reconnecting') txt = t('live_reconnect') + ' · ' + t('live_recorded') + ' ' + recd;
+    else if (catching) txt = t('live_catch').replace('{a}', recd).replace('{b}', '<b>' + fmt((liveInfo.dur || 0) + liveInfo.behind) + '</b>');
+    else if (act) txt = t('live_recording') + ' ' + recd;
+    else if (liveInfo.state === 'ended') txt = t('live_ended') + ' · ' + recd;
+    else txt = t('live_stopped') + ' · ' + recd;
+    $('liveStripText').innerHTML = txt;
+    $('liveActBtn').textContent = act ? t('live_finish') : (liveInfo.finalizing ? '' : t('live_make_mp4'));
+    $('liveActBtn').dataset.act = act ? 'finish' : 'mp4';
+    $('liveResumeBtn').textContent = !act && !liveInfo.finalizing && liveInfo.state !== 'ended' ? t('live_resume') : '';
+  }
+  async function liveAttach(p) {
+    liveInfo = null;
+    if (!isLivePath(p)) { liveRenderUI(); return; }
+    let st = null; try { st = await window.api.liveState(); } catch (e) {}
+    const active = !!(st && st.active && st.vod === p);
+    liveInfo = Object.assign({ vod: p, active, state: active ? st.state : 'stopped', dur: active ? st.dur : 0, behind: active ? st.behind || 0 : 0 }, active ? { title: st.title, url: st.url } : {});
+    liveRenderUI();
+  }
+  if (window.api.onLiveStatus) window.api.onLiveStatus((m) => {
+    if (m && m.phase === 'connect') { $('liveProgText').textContent = m.text || ''; return; }
+    if (m && m.phase === 'finalize') { exportStatus.textContent = t('live_mp4_prog').replace('{p}', m.percent || 0); return; }
+    if (!m || !liveInfo || m.vod !== liveInfo.vod) return;
+    Object.assign(liveInfo, { active: !!m.active, state: m.state, dur: m.dur, behind: m.behind || 0 });
+    if (m.state === 'ended' || m.state === 'error') toast(m.state === 'ended' ? t('live_ended_toast') : t('live_err_toast') + (m.error ? ': ' + m.error : ''), m.state === 'error');
+    liveRenderUI();
+  });
+  $('livePill').addEventListener('click', () => {
+    if (!liveInfo || !liveInfo.active) return;
+    if (holdState) endHold(false);
+    video.currentTime = liveEdge(); video.play();
+  });
+  $('liveActBtn').addEventListener('click', async () => {
+    if (!liveInfo) return;
+    if ($('liveActBtn').dataset.act === 'finish') {
+      if (!(await confirmDialog({ title: t('live_finish_q'), text: t('live_finish_d'), ok: t('live_finish'), cancel: t('hl_del_cancel') }))) return;
+      await window.api.liveStop();
+      liveInfo.active = false; liveInfo.state = 'stopped'; liveRenderUI();
+    }
+    // склеить в MP4 — разбор переедет на обычный видеофайл
+    flushProjectSave(true);
+    liveInfo.finalizing = true; liveRenderUI();
+    const pos = video.currentTime;
+    const r = await window.api.liveFinalize({ vod: liveInfo.vod, projectsFolder: appSettings.projectsFolder });
+    if (liveInfo) liveInfo.finalizing = false;
+    exportStatus.textContent = '';
+    if (!r || !r.ok) { toast(t('live_mp4_fail') + (r && r.error ? ': ' + r.error : ''), true); liveRenderUI(); return; }
+    toast(t('live_mp4_done'));
+    await openVideo(r.file);
+    pendingSeek = pos;
+  });
+  // запись прервалась (программу закрывали) — продолжить в ту же папку, шкала не сдвигается
+  $('liveResumeBtn').addEventListener('click', async () => {
+    if (!liveInfo) return;
+    $('liveResumeBtn').textContent = t('live_connecting');
+    const dir = liveInfo.vod.replace(/[\\/][^\\/]+$/, '');
+    const r = await window.api.liveResume({ dir });
+    if (!r || !r.ok) { toast((r && r.error) || t('live_err_toast'), true); liveRenderUI(); return; }
+    const pos = video.currentTime;
+    liveStartAt = pos;
+    await openVideo(r.vod);
+  });
+  // окно подключения
+  let liveBusy = false;
+  function openLive() {
+    $('liveErr').classList.remove('show'); if (!liveBusy) $('liveProg').classList.remove('show');
+    $('liveOverlay').classList.add('active');
+    setTimeout(() => $('liveInput').focus(), 30);
+    if (!$('liveInput').value && navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then((tx) => { tx = (tx || '').trim(); if (/^https?:\/\/\S+$/.test(tx) && !$('liveInput').value) $('liveInput').value = tx; }).catch(() => {});
+  }
+  $('homeLiveBtn').addEventListener('click', openLive);
+  $('liveCancelBtn').addEventListener('click', () => { if (!liveBusy) $('liveOverlay').classList.remove('active'); });
+  $('livePasteBtn').addEventListener('click', async () => { try { $('liveInput').value = (await navigator.clipboard.readText()).trim(); } catch (e) {} });
+  $('liveInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('liveStartBtn').click(); } });
+  $('liveStartBtn').addEventListener('click', async () => {
+    if (liveBusy) return;
+    const url = $('liveInput').value.trim();
+    if (!url) { $('liveInput').focus(); return; }
+    liveBusy = true; $('liveStartBtn').disabled = true;
+    $('liveErr').classList.remove('show');
+    $('liveProg').classList.add('show'); $('liveProgText').textContent = t('live_connecting');
+    let r;
+    try { r = await window.api.liveStart({ url, quality: $('liveQuality').value, cookiesBrowser: $('liveCookies').value, fromStart: $('liveFromStart').checked }); }
+    catch (e) { r = { ok: false, error: String((e && e.message) || e) }; }
+    liveBusy = false; $('liveStartBtn').disabled = false;
+    $('liveProg').classList.remove('show');
+    if (!r || !r.ok) {
+      $('liveErrText').textContent = (r && r.error) || t('live_err_toast');
+      $('liveErr').classList.add('show');
+      if (r && r.kind === 'auth') $('liveCookies').classList.add('attn');
+      return;
+    }
+    $('liveOverlay').classList.remove('active');
+    liveStartAt = r.fromStart ? 0 : null; // с начала эфира — смотрим с начала, «В эфир» догонит
+    await openVideo(r.vod, null, null, r.url);
+    if (r.note) toast(r.note);
+  });
+
   async function openVideo(filePath, projectObj, oldProjectFile, sourceUrl) {
     if (!filePath) return;
     flushProjectSave();
@@ -2015,8 +2227,10 @@
     currentVideoPath = filePath;
     videoFps = 0; fetchVideoFps(filePath);
     video.pause();
-    video.src = toFileUrl(filePath);
-    fileChip.textContent = filePath.split(/[/\\]/).pop();
+    await liveAttach(filePath);
+    setVideoSource(video, filePath, { live: !!(liveInfo && liveInfo.active), start: liveStartAt });
+    liveStartAt = null;
+    fileChip.textContent = isLivePath(filePath) ? filePath.split(/[/\\]/).slice(-2, -1)[0] : filePath.split(/[/\\]/).pop();
     fileChip.title = filePath;
     fileChip.classList.add('show');
     videoError.classList.remove('active');
@@ -2228,6 +2442,15 @@
     uiTick();
   });
 
+  video.addEventListener('durationchange', () => {
+    const d = video.duration;
+    if (!isFinite(d) || d <= 0 || Math.abs(d - duration) < 0.5) return;
+    duration = d;
+    if (liveInfo) { if (!liveInfo.active || !(liveInfo.dur > d)) liveInfo.dur = Math.max(liveInfo.dur || 0, d); liveRenderUI(); }
+    renderClips();
+  });
+  setInterval(() => { if (liveInfo && liveInfo.active && !video.paused) liveRenderUI(); }, 1000);
+  ['seeked', 'pause', 'play'].forEach((ev) => video.addEventListener(ev, () => { if (liveInfo) liveRenderUI(); }));
   function displayTime() { return sliderDragging ? scrubTarget : video.currentTime; }
   // Один цикл обновления интерфейса: во время воспроизведения идёт на частоте экрана —
   // шкала плавная, а клип останавливается ровно на конце.
@@ -5881,7 +6104,7 @@
     };
     buildEditor();
     ed.ph = eClipO().s;
-    edV.src = video.currentSrc || video.src;
+    if (isLivePath(currentVideoPath)) setVideoSource(edV, currentVideoPath, { start: clip.start }); else edV.src = video.currentSrc || video.src;
     edV.volume = video.volume; edV.muted = edMuted(); edV.playbackRate = 1;
     edV.addEventListener('loadedmetadata', () => { edFit(); edSeek(ed.ph); }, { once: true });
     edEl.classList.add('show');

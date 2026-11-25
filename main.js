@@ -5,6 +5,9 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const downloader = require('./downloader');
+const live = require('./live');
+const vkdvr = require('./vkdvr');
+const http = require('http');
 const freezeLib = require('./freeze');
 const ai = require('./ai');
 let ffmpegPath = require('ffmpeg-static');
@@ -363,7 +366,8 @@ ipcMain.handle('list-projects', async (event, { projectsFolder }) => {
         result.push({
           file,
           videoPath: p.videoPath,
-          videoName: path.basename(p.videoPath),
+          videoName: /vod\.m3u8$/i.test(p.videoPath) ? path.basename(path.dirname(p.videoPath)) : path.basename(p.videoPath),
+          live: /vod\.m3u8$/i.test(p.videoPath),
           exists: fs.existsSync(p.videoPath),
           updatedAt: p.updatedAt || fs.statSync(file).mtimeMs,
           clipCount: Array.isArray(p.clips) ? p.clips.length : 0,
@@ -508,6 +512,248 @@ ipcMain.handle('download-cancel', async () => {
   return { ok: true };
 });
 
+
+// ---------- трансляция: разметка поверх идущего эфира ----------
+// Ссылку на эфир (VK Видео, YouTube) разбирает загрузчик, поток пишет ffmpeg в папку «Трансляции» кусочками по 4 с
+// (live.js). Окно показывает эту запись плеером HLS через маленький локальный сервер: можно отматывать назад и
+// возвращаться в эфир. Выгрузка клипов, ИИ и стоп-кадры работают с той же записью (vod.m3u8).
+let liveSess = null, liveMeta = null;
+function liveNormUrl(u) {
+  u = String(u || '').trim();
+  // vk.ru/live-123_456, vkvideo.ru/live-… → vk.com/video-123_456 (так ссылку понимает загрузчик)
+  const m = /^(?:https?:\/\/)?(?:www\.|m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:live|video)(-?\d+_\d+)/i.exec(u);
+  if (m) return 'https://vk.com/video' + m[1];
+  if (!/^https?:\/\//i.test(u) && /^[\w.-]+\.[a-z]{2,}\//i.test(u)) return 'https://' + u;
+  return u;
+}
+function liveSafe(name) { return String(name || 'Трансляция').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Трансляция'; }
+// YouTube теперь требует движок JavaScript для разбора страницы. Его роль может сыграть сама программа (Electron = Node.js).
+let ytUseJs = false;
+function ytJson(bin, url, cookiesBrowser, timeoutMs) {
+  return new Promise((resolve) => {
+    const args = ['-J', '--no-warnings', '--no-playlist'];
+    const env = Object.assign({}, process.env, { PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' });
+    if (ytUseJs && /youtu\.?be/i.test(url)) { args.push('--js-runtimes', 'node:' + process.execPath); env.ELECTRON_RUN_AS_NODE = '1'; }
+    if (cookiesBrowser) args.push('--cookies-from-browser', cookiesBrowser);
+    args.push(url);
+    let out = '', err = '', done = false, proc;
+    const fin = (r) => { if (done) return; done = true; clearTimeout(timer); resolve(r); };
+    try { proc = spawn(bin, args, { windowsHide: true, env }); }
+    catch (e) { return resolve({ ok: false, error: e.message }); }
+    const timer = setTimeout(() => { downloader.killTree(proc); fin({ ok: false, kind: 'network', error: 'площадка долго не отвечает' }); }, timeoutMs || 90000);
+    proc.stdout.on('data', (d) => { out += d; });
+    proc.stderr.on('data', (d) => { err = (err + d).slice(-3000); });
+    proc.on('error', (e) => fin({ ok: false, error: e.message }));
+    proc.on('close', (code) => {
+      if (code === 0) { try { return fin({ ok: true, info: JSON.parse(out) }); } catch (e) {} }
+      const line = (err.split('\n').filter((l) => /ERROR/.test(l)).pop() || err.trim().split('\n').pop() || 'код ' + code).replace(/^ERROR:\s*(\[[^\]]+\]\s*)?/, '');
+      fin({ ok: false, kind: downloader.classifyError(err), error: line });
+    });
+  });
+}
+// поток для ffmpeg: HLS нужной высоты; у VK обычный «hls_live» (без «ondemand»)
+function livePickFormat(info, quality) {
+  const maxH = quality && quality !== 'best' ? parseInt(quality, 10) : 100000;
+  const fs0 = (info.formats || []).filter((f) => /m3u8/.test(f.protocol || '') && f.url && f.vcodec !== 'none');
+  if (!fs0.length) return null;
+  const score = (f) => { const h = f.height || 0; return (h <= maxH ? 1e6 + h : -h) + (/ondemand/.test(f.format_id || '') ? 0 : 0.5); };
+  return fs0.slice().sort((a, b) => score(b) - score(a))[0];
+}
+// HTTP-запрос сетью программы (учитывает прокси/VPN): { status, buf }
+function netGet(url, headers, timeoutMs) {
+  return new Promise((resolve) => {
+    let done = false, req, timer;
+    const fin = (r) => { if (done) return; done = true; clearTimeout(timer); resolve(r); };
+    try { req = net.request({ url, redirect: 'follow' }); } catch (e) { return fin({ status: 0, error: e.message }); }
+    Object.entries(headers || {}).forEach(([k, v]) => { try { req.setHeader(k, v); } catch (e) {} });
+    timer = setTimeout(() => { try { req.abort(); } catch (e) {} fin({ status: 0, error: 'timeout' }); }, timeoutMs || 20000);
+    req.on('response', (res) => { const ch = []; res.on('data', (c) => ch.push(c)); res.on('end', () => fin({ status: res.statusCode, buf: Buffer.concat(ch) })); res.on('error', (e) => fin({ status: 0, error: e.message })); });
+    req.on('error', (e) => fin({ status: 0, error: e.message }));
+    req.end();
+  });
+}
+async function netGetRetry(url, headers) {
+  for (let i = 0; i < 4; i++) { const r = await netGet(url, headers); if (r.status) return r; await new Promise((ok) => setTimeout(ok, 800 * (i + 1))); }
+  return { status: 0 };
+}
+const netText = async (url, headers) => { const r = await netGetRetry(url, headers); if (r.status !== 200) throw new Error('список эфира: ответ ' + r.status); return r.buf.toString('utf8'); };
+// VK: «ondemand»-поток нужной высоты (у него кусочки t<мс>.ts — можно взять эфир с начала)
+function vkOndemandFormat(info, quality) {
+  const maxH = quality && quality !== 'best' ? parseInt(quality, 10) : 100000;
+  const fs0 = (info.formats || []).filter((f) => /ondemand/.test(f.format_id || '') && /m3u8/.test(f.protocol || '') && f.url);
+  return fs0.filter((f) => (f.height || 0) <= maxH).sort((a, b) => (b.height || 0) - (a.height || 0))[0] || fs0.sort((a, b) => (a.height || 0) - (b.height || 0))[0] || null;
+}
+function liveSend(msg) { BrowserWindow.getAllWindows().forEach((w) => { try { w.webContents.send('live-status', msg); } catch (e) {} }); }
+function liveState() {
+  if (!liveSess) return { active: false };
+  return Object.assign({ active: !['stopped', 'error'].includes(liveSess.state) }, liveSess.status(), liveMeta || {});
+}
+async function liveBegin(opts, dir, meta, first) {
+  const bin = await downloader.ensureYtDlp(loaderBinDir(), null, false, loaderOpts());
+  let pre = first || null;
+  // VK с начала эфира: позиция (мс от начала трансляции) — помним её, чтобы после обрыва продолжить ровно с того же места
+  const dvr = meta.dvr ? { pos: meta.dvr.pos || 0, total: 0 } : null;
+  let lastSave = 0;
+  const saveMeta = () => { try { fs.writeFileSync(path.join(dir, 'live.json'), JSON.stringify(meta, null, 1)); } catch (e) {} };
+  const resolve = async ({ run }) => {
+    let r = pre; pre = null;
+    if (!r) r = await ytJson(bin, meta.url, opts.cookiesBrowser, 60000);
+    if (!r.ok) return { ok: false, error: r.error, ended: /not currently live|has ended|offline|не в эфире|is not live/i.test(r.error || '') };
+    const info = r.info;
+    if (dvr) {
+      const fo = vkOndemandFormat(info, opts.quality);
+      if (fo) {
+        const headers = fo.http_headers || {};
+        const stream = vkdvr.createStream({ url: fo.url, headers, state: dvr, fetchBuf: netGetRetry, fetchText: netText,
+          log: (m) => console.log('[vk] ' + m),
+          onProgress: (p) => {
+            meta.dvr.pos = p.pos; meta.behind = p.total ? Math.max(0, (p.total - p.pos) / 1000) : 0;
+            if (Date.now() - lastSave > 5000) { lastSave = Date.now(); saveMeta(); }
+            if (liveSess) liveSend(Object.assign({ active: true }, liveSess.status(), meta));
+          } });
+        return { ok: true, stream };
+      }
+      // перемотки больше нет (эфир закончился или VK сменил вид) — дальше с живого края
+    }
+    if (info.is_live === false || (info.live_status && info.live_status !== 'is_live')) return { ok: false, ended: true, error: 'трансляция закончилась' };
+    const f = livePickFormat(info, opts.quality);
+    if (!f) return { ok: false, error: 'площадка не отдала поток в подходящем виде' };
+    return { ok: true, url: f.url, headers: f.http_headers || {} };
+  };
+  liveSess = new live.LiveSession({ dir, ffmpeg: ffmpegPath, resolve });
+  liveMeta = meta;
+  liveSess.on('status', (st) => liveSend(Object.assign({ active: !['stopped', 'error'].includes(st.state) }, st, liveMeta)));
+  liveSess.start();
+  // ждём первые кусочки (≈ 8 с видео) или ошибку — тогда окно сразу открывает запись
+  const sess = liveSess;
+  const st = await new Promise((resolve2) => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      const s0 = sess.status();
+      if (s0.segs >= 2 || ['error', 'ended', 'stopped'].includes(s0.state) || Date.now() - t0 > 120000) { clearInterval(iv); resolve2(s0); }
+    }, 300);
+  });
+  if (dvr) saveMeta();
+  if (st.segs < 1) {
+    await sess.stop();
+    if (liveSess === sess) { liveSess = null; liveMeta = null; }
+    return { ok: false, error: st.error || 'поток не пошёл — попробуйте ещё раз' };
+  }
+  return { ok: true, vod: sess.vod, dir, title: meta.title, url: meta.url, fromStart: !!dvr };
+}
+ipcMain.handle('live-start', async (event, opts) => {
+  if (liveSess && !['stopped', 'error', 'ended'].includes(liveSess.state)) return { ok: false, kind: 'busy', error: 'Уже идёт запись другой трансляции — сначала завершите её.' };
+  if (currentDownload) return { ok: false, kind: 'busy', error: 'Сейчас идёт загрузка видео по ссылке — дождитесь её конца.' };
+  const url = liveNormUrl(opts && opts.url);
+  if (!/^https?:\/\//i.test(url)) return { ok: false, kind: 'url', error: 'Это не похоже на ссылку. Вставьте адрес трансляции вида https://…' };
+  const send = (text) => { try { event.sender.send('live-status', { phase: 'connect', text }); } catch (e) {} };
+  let bin;
+  try { send('Готовлю загрузчик…'); bin = await downloader.ensureYtDlp(loaderBinDir(), (t) => send(t), false, loaderOpts()); }
+  catch (e) { return { ok: false, kind: 'loader', error: e.message || String(e) }; }
+  send('Получаю трансляцию…');
+  let r = await ytJson(bin, url, opts.cookiesBrowser, 90000);
+  if (!r.ok && /unsupported|extractor|unable to extract/i.test(r.error || '')) { // свежий загрузчик часто помогает
+    send('Обновляю загрузчик…');
+    try { await downloader.ensureYtDlp(loaderBinDir(), null, true, loaderOpts()); r = await ytJson(bin, url, opts.cookiesBrowser, 90000); } catch (e) {}
+  }
+  // YouTube без движка JavaScript может не отдать поток — пробуем ещё раз, движком служит сама программа
+  if (/youtu\.?be/i.test(url) && !ytUseJs && (!r.ok || !livePickFormat(r.info, opts.quality))) {
+    send('Получаю трансляцию YouTube…');
+    ytUseJs = true;
+    const r2 = await ytJson(bin, url, opts.cookiesBrowser, 90000);
+    if (r2.ok && livePickFormat(r2.info, opts.quality)) r = r2; else ytUseJs = false;
+  }
+  if (!r.ok) return { ok: false, kind: r.kind || 'other', error: /confirm you.?re not a bot|sign in/i.test(r.error || '') ? 'YouTube просит войти в аккаунт — выберите браузер, где вы вошли в YouTube, в поле «Вход в аккаунт».' : r.error };
+  const info = r.info;
+  if (info.live_status === 'is_upcoming') return { ok: false, kind: 'upcoming', error: 'Трансляция ещё не началась — подключитесь, когда она пойдёт.' };
+  if (!info.is_live) return { ok: false, kind: 'notlive', error: 'Это уже не прямой эфир — готовую запись откройте через «По ссылке».' };
+  let settings = defaultSettings();
+  try { settings = Object.assign(settings, JSON.parse(fs.readFileSync(settingsPath(), 'utf-8'))); } catch (e) {}
+  const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+  const title = liveSafe(info.title || info.fulltitle || info.id);
+  const dir = path.join(settings.downloadsFolder || defaultDownloadsFolder(), 'Трансляции', liveSafe(title + ' ' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + '-' + pad(d.getMinutes())));
+  const meta = { url, title, extractor: info.extractor || '', startedAt: Date.now(), quality: opts.quality || '720' };
+  // с начала эфира: у VK — проверяем, что прошлые кусочки доступны
+  let fromStartNote = '';
+  if (opts.fromStart) {
+    const fo = /^vk/i.test(info.extractor || '') ? vkOndemandFormat(info, opts.quality) : null;
+    let ok = false;
+    if (fo) { send('Проверяю запись эфира с начала…'); try { ok = (await vkdvr.probe(netText, fo.url, fo.http_headers || {})).ok; } catch (e) {} }
+    if (ok) meta.dvr = { pos: 0 };
+    else fromStartNote = /^vk/i.test(info.extractor || '') ? 'VK не отдаёт этот эфир с начала — запись идёт с текущего момента.' : 'С начала эфира пока можно только для VK Видео — запись идёт с текущего момента.';
+  }
+  try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, 'live.json'), JSON.stringify(meta, null, 1)); } catch (e) { return { ok: false, kind: 'disk', error: 'Не удалось создать папку записи: ' + e.message }; }
+  send('Подключаюсь к эфиру…');
+  try { const res = await liveBegin(opts, dir, meta, r); if (res.ok && fromStartNote) res.note = fromStartNote; return res; }
+  catch (e) { return { ok: false, kind: e.kind || 'other', error: e.message || String(e) }; }
+});
+// продолжить запись в ту же папку (программу закрывали или эфир прерывался)
+ipcMain.handle('live-resume', async (event, { dir, cookiesBrowser }) => {
+  if (liveSess && !['stopped', 'error', 'ended'].includes(liveSess.state)) return { ok: false, kind: 'busy', error: 'Уже идёт запись другой трансляции.' };
+  let meta; try { meta = JSON.parse(fs.readFileSync(path.join(dir, 'live.json'), 'utf8')); } catch (e) { return { ok: false, error: 'Это не папка записи трансляции.' }; }
+  try { return await liveBegin({ quality: meta.quality, cookiesBrowser }, dir, meta, null); }
+  catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+ipcMain.handle('live-state', () => liveState());
+ipcMain.handle('live-stop', async () => {
+  if (!liveSess) return { ok: true };
+  const st = await liveSess.stop();
+  return Object.assign({ ok: true }, st);
+});
+// склеить запись в обычный MP4 и перенести на него разбор (клипы, рисунки)
+ipcMain.handle('live-finalize', async (event, { vod, projectsFolder }) => {
+  const dir = path.dirname(vod);
+  if (liveSess && liveSess.dir === dir && !['stopped', 'error', 'ended'].includes(liveSess.state)) await liveSess.stop();
+  let meta = {}; try { meta = JSON.parse(fs.readFileSync(path.join(dir, 'live.json'), 'utf8')); } catch (e) {}
+  const total = live.readPlaylist(vod).dur;
+  const out = path.join(dir, liveSafe(meta.title || path.basename(dir)) + '.mp4');
+  const r = await live.finalizeToMp4(ffmpegPath, vod, out, (f) => { try { event.sender.send('live-status', { phase: 'finalize', percent: Math.round(f * 100) }); } catch (e) {} }, total);
+  if (!r.ok) return r;
+  try { // разбор переезжает на MP4
+    const folder = projectsFolder || defaultProjectsFolder();
+    const oldF = projectFileFor(folder, vod);
+    if (fs.existsSync(oldF)) {
+      const p = JSON.parse(fs.readFileSync(oldF, 'utf8'));
+      writeProjectFile(folder, out, Object.assign(p, { videoPath: out, liveDir: dir }));
+      fs.unlinkSync(oldF);
+    }
+    meta.finalized = out; fs.writeFileSync(path.join(dir, 'live.json'), JSON.stringify(meta, null, 1));
+  } catch (e) {}
+  if (liveSess && liveSess.dir === dir) { liveSess = null; liveMeta = null; }
+  return { ok: true, file: out };
+});
+
+// маленький сервер для плеера HLS (только этот компьютер, только папки записей)
+let hlsSrv = null, hlsPort = 0;
+const hlsRoots = new Map();
+function hlsEnsure() {
+  if (hlsSrv && hlsPort) return Promise.resolve(hlsPort);
+  return new Promise((resolve, reject) => {
+    hlsSrv = http.createServer((req, res) => {
+      const m = /^\/h\/([0-9a-f]{16})\/([\w.\-]+)$/.exec((req.url || '').split('?')[0]);
+      const dir = m && hlsRoots.get(m[1]);
+      const head = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
+      if (!dir || !/\.(m3u8|ts)$/i.test(m[2])) { res.writeHead(404, head); return res.end(); }
+      fs.readFile(path.join(dir, m[2]), (err, buf) => {
+        if (err) { res.writeHead(404, head); return res.end(); }
+        res.writeHead(200, Object.assign(head, { 'Content-Type': /m3u8$/i.test(m[2]) ? 'application/vnd.apple.mpegurl' : 'video/mp2t', 'Content-Length': buf.length }));
+        res.end(buf);
+      });
+    });
+    hlsSrv.on('error', reject);
+    hlsSrv.listen(0, '127.0.0.1', () => { hlsPort = hlsSrv.address().port; resolve(hlsPort); });
+  });
+}
+ipcMain.handle('hls-url', async (event, { path: p, live: wantLive }) => {
+  const port = await hlsEnsure();
+  const dir = path.dirname(p);
+  const token = crypto.createHash('sha1').update(dir).digest('hex').slice(0, 16);
+  hlsRoots.set(token, dir);
+  // идёт запись — плеер берёт растущий список (index.m3u8), иначе — готовый (vod.m3u8)
+  const recording = liveSess && liveSess.dir === dir && !['stopped', 'error', 'ended'].includes(liveSess.state);
+  const name = wantLive && recording ? 'index.m3u8' : path.basename(p);
+  return { url: 'http://127.0.0.1:' + port + '/h/' + token + '/' + encodeURIComponent(name), live: !!(wantLive && recording) };
+});
 
 // ---------- ИИ: подсветка игроков ----------
 // Нейросеть работает в отдельном процессе (ai-host.js): так окно не «замерзает», пока она загружается
@@ -901,9 +1147,16 @@ ipcMain.handle('coach-export', async (event, { json, name }) => {
 });
 ipcMain.handle('coach-show-file', async (event, p) => { try { shell.showItemInFolder(p); } catch (e) {} return { ok: true }; });
 
-app.on('before-quit', () => {
+let liveQuitting = false;
+app.on('before-quit', (e) => {
   aiKill();
   if (currentDownload && currentDownload.proc) downloader.killTree(currentDownload.proc);
+  // идёт запись трансляции — даём ffmpeg дописать последний кусочек и закрыть список (до 5 секунд)
+  if (liveSess && (liveSess.ff || liveSess.src) && !liveQuitting) {
+    e.preventDefault(); liveQuitting = true;
+    const sess = liveSess;
+    Promise.race([sess.stop(), new Promise((r) => setTimeout(r, 5000))]).then(() => { live.killTree(sess.ff); live.killTree(sess.src); app.quit(); });
+  }
 });
 
 // ---------- helpers ----------

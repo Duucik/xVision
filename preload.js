@@ -47,6 +47,16 @@ contextBridge.exposeInMainWorld('api', {
   updateCheck: () => ipcRenderer.invoke('update-check'),
   updateInstall: () => ipcRenderer.invoke('update-install'),
   updateBeta: (on) => ipcRenderer.invoke('update-beta', on),
+  liveStart: (opts) => ipcRenderer.invoke('live-start', opts),
+  liveResume: (opts) => ipcRenderer.invoke('live-resume', opts),
+  liveState: () => ipcRenderer.invoke('live-state'),
+  liveStop: () => ipcRenderer.invoke('live-stop'),
+  liveFinalize: (opts) => ipcRenderer.invoke('live-finalize', opts),
+  hlsUrl: (opts) => ipcRenderer.invoke('hls-url', opts),
+  onLiveStatus: (callback) => {
+    ipcRenderer.removeAllListeners('live-status');
+    ipcRenderer.on('live-status', (event, msg) => callback(msg));
+  },
   onUpdateStatus: (callback) => {
     ipcRenderer.removeAllListeners('update-status');
     ipcRenderer.on('update-status', (event, msg) => callback(msg));

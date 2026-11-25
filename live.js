@@ -87,51 +87,65 @@ class LiveSession extends EventEmitter {
     this.poll = setInterval(() => this._poll(), 1000);
     return this;
   }
-  _run() {
+  async _run() {
     if (this.stopping) return;
     this.runs++;
-    const o = this.o, first = this.rec.segs === 0;
-    const runStartSegs = this.rec.segs;
-    this.runSegs0 = runStartSegs;
-    // источник
-    let bin, args;
-    if (o.sourceCmd) { bin = o.sourceCmd[0]; args = o.sourceCmd[1]; }
-    else if (first && o.fromStartUrl) { bin = o.ffmpeg; args = ['-hide_banner', '-loglevel', 'error', '-live_start_index', '0', '-i', o.fromStartUrl, '-map', '0', '-c', 'copy', '-f', 'mpegts', 'pipe:1']; }
-    else {
-      bin = o.ytdlp;
-      args = ['-q', '--no-warnings', '--no-part', '--no-playlist', '-f', liveFormat(o.quality), '--hls-use-mpegts', '-o', '-'];
-      if (o.ffmpeg) args.push('--ffmpeg-location', o.ffmpeg);
-      if (o.cookiesBrowser) args.push('--cookies-from-browser', o.cookiesBrowser);
-      (o.extraArgs || []).forEach((a) => args.push(a));
-      args.push(o.url);
+    const o = this.o;
+    this.runSegs0 = this.rec.segs;
+    // источник: либо прямая ссылка на поток (её даёт загрузчик — обновляем при каждом подключении: ссылки «протухают»),
+    // либо готовая команда, которая пишет поток в stdout (для проверки)
+    let input = ['-i', 'pipe:0'], src = null, feed = null;
+    if (o.sourceCmd) {
+      try { src = spawn(o.sourceCmd[0], o.sourceCmd[1], { windowsHide: true }); } catch (e) { return this._runEnded('не запускается источник: ' + e.message); }
+    } else {
+      let r;
+      try { r = await o.resolve({ run: this.runs, recorded: this.rec.dur }); } catch (e) { r = { ok: false, error: (e && e.message) || String(e) }; }
+      if (this.stopping) return this._finishStop();
+      if (!r || !r.ok) return this._runEnded(r && r.error ? 'ERROR: ' + r.error : 'ERROR: не удалось получить поток', r && r.ended);
+      if (r.stream) feed = r.stream; // поток уже готов (VK с начала эфира) — ffmpeg читает его со stdin
+      else {
+      const hdr = Object.entries(r.headers || {}).map(([k2, v]) => k2 + ': ' + v + '\r\n').join('');
+      input = [];
+      if (hdr) input.push('-headers', hdr);
+      if (/^https?:/i.test(r.url)) input.push('-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_on_network_error', '1', '-reconnect_delay_max', '10', '-rw_timeout', '20000000');
+      input.push('-live_start_index', String(r.startIndex != null ? r.startIndex : -3), '-i', r.url);
+      }
     }
-    const env = Object.assign({}, process.env, { PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }, o.env || {});
-    let src, ff;
-    try { src = spawn(bin, args, { windowsHide: true, env }); } catch (e) { return this._runEnded('не запускается загрузчик: ' + e.message); }
+    let ff;
     // нарезка: шкала продолжается с того места, где закончилась прошлая запись
     const k = this.runs;
-    const ffArgs = ['-hide_banner', '-loglevel', 'error', '-fflags', '+genpts', '-i', 'pipe:0',
+    const ffArgs = ['-hide_banner', '-loglevel', 'error', '-fflags', '+genpts'].concat(input).concat([
       '-map', '0:v:0?', '-map', '0:a:0?', '-c', 'copy',
       '-muxdelay', '0', '-muxpreload', '0', '-output_ts_offset', this.rec.dur.toFixed(3),
       '-f', 'hls', '-hls_time', String(SEG), '-hls_list_size', '0', '-hls_playlist_type', 'event', '-hls_flags', 'independent_segments',
-      '-hls_segment_filename', path.join(this.dir, 'r' + k + '_%05d.ts'), path.join(this.dir, 'r' + k + '.m3u8')];
+      '-hls_segment_filename', path.join(this.dir, 'r' + k + '_%05d.ts'), path.join(this.dir, 'r' + k + '.m3u8')]);
     try { ff = spawn(o.ffmpeg, ffArgs, { windowsHide: true }); } catch (e) { killTree(src); return this._runEnded('не запускается ffmpeg: ' + e.message); }
-    this.src = src; this.ff = ff;
-    src.stdout.pipe(ff.stdin);
-    ff.stdin.on('error', () => {});
-    src.stdout.on('error', () => {});
+    this.src = src; this.ff = ff; this.feed = feed;
     let log = '';
     const keep = (d) => { log = (log + d.toString()).slice(-2000); };
-    src.stderr.on('data', keep); ff.stderr.on('data', keep);
-    let left = 2;
-    const done = () => { if (--left > 0) return; this.lastLog = log.trim(); this._runEnded(); };
-    src.on('error', (e) => { keep(String(e)); });
+    ff.stderr.on('data', keep);
     ff.on('error', (e) => { keep(String(e)); });
-    src.on('close', () => { try { ff.stdin.end(); } catch (e) {} done(); });
-    ff.on('close', () => { killTree(src); done(); });
+    let left = src || feed ? 2 : 1;
+    if (feed) {
+      ff.stdin.on('error', () => {});
+      let fin = false;
+      const end = (e) => { if (fin) return; fin = true; if (e) keep('ERROR: ' + (e.message || e)); try { ff.stdin.end(); } catch (er) {} done(); };
+      feed.on('error', end); feed.on('end', () => end()); feed.on('close', () => end());
+      feed.pipe(ff.stdin, { end: false });
+    }
+    const done = () => { if (--left > 0) return; this.lastLog = log.trim(); this._runEnded(); };
+    if (src) {
+      src.stdout.pipe(ff.stdin);
+      ff.stdin.on('error', () => {});
+      src.stdout.on('error', () => {});
+      src.stderr.on('data', keep);
+      src.on('error', (e) => { keep(String(e)); });
+      src.on('close', () => { try { ff.stdin.end(); } catch (e) {} done(); });
+    }
+    ff.on('close', () => { killTree(src); if (feed && feed.stopFeed) feed.stopFeed(); done(); });
   }
-  _runEnded(err) {
-    this.src = null; this.ff = null;
+  _runEnded(err, ended) {
+    this.src = null; this.ff = null; this.feed = null;
     this._poll();
     if (err) this.lastLog = err;
     if (this.stopping) { this._finishStop(); return; }
@@ -139,9 +153,9 @@ class LiveSession extends EventEmitter {
     this.fails = gotNew ? 0 : this.fails + 1;
     const msg = (this.lastLog.split('\n').filter((l) => /ERROR|error|Error/.test(l)).pop() || this.lastLog.split('\n').pop() || '').replace(/^ERROR:\s*/, '').slice(0, 300);
     // нет ни одного кусочка с самого начала — ссылка не работает
-    if (this.rec.segs === 0 && this.fails >= 2) { this._set('error', { error: msg || 'не удалось подключиться к трансляции' }); this._clearPoll(); return; }
-    // трансляция, похоже, закончилась: несколько попыток подряд без новых кусочков
-    if (/has ended|not currently live|is offline|не в эфире|ended|finished/i.test(msg) || this.fails >= 4) { this._set('ended', { error: msg }); this._clearPoll(); return; }
+    if (this.rec.segs === 0 && this.fails >= 2) { this._clearPoll(); this._set('error', { error: msg || 'не удалось подключиться к трансляции' }); return; }
+    // трансляция, похоже, закончилась: несколько попыток подряд без новых кусочков — список закрываем, запись готова
+    if (ended || /has ended|not currently live|is offline|не в эфире|закончил/i.test(msg) || this.fails >= 5) { this._clearPoll(); this._poll(true); this._set('ended', { error: msg }); return; }
     this._set('reconnecting', { error: msg });
     const wait = Math.min(30, 2 * Math.pow(2, this.fails)) * 1000;
     this.timer = setTimeout(() => this._run(), wait);
@@ -168,7 +182,9 @@ class LiveSession extends EventEmitter {
     this.stopping = true;
     clearTimeout(this.timer);
     this.stopPromise = new Promise((resolve) => { this._stopResolve = resolve; });
-    if (this.src || this.ff) { killTree(this.src); setTimeout(() => killTree(this.ff), 4000); } // ffmpeg дописывает последний кусочек сам
+    if (this.feed) { this.feed.stopFeed(); setTimeout(() => killTree(this.ff), 4000); }
+    else if (this.src) { killTree(this.src); setTimeout(() => killTree(this.ff), 4000); } // ffmpeg дописывает последний кусочек сам
+    else if (this.ff) { try { this.ff.stdin.write('q'); } catch (e) {} setTimeout(() => killTree(this.ff), 4000); }
     else this._finishStop();
     return this.stopPromise;
   }
