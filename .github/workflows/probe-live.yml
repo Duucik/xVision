@@ -57,6 +57,20 @@ jobs:
               { echo "segments: $(grep -c EXTINF $N.variant.m3u8)"; echo "total sec: $(grep EXTINF $N.variant.m3u8 | sed -E 's/#EXTINF:([0-9.]+).*/\1/' | paste -sd+ | bc)"; grep -E '^#EXT-X-(PLAYLIST-TYPE|MEDIA-SEQUENCE|TARGETDURATION|PROGRAM-DATE-TIME|ENDLIST|VERSION)' $N.variant.m3u8 | head -6; echo ...; head -14 $N.variant.m3u8 | sed -E 's#(https?://[^/]+)[^ ]*#\1/…#g'; } > $N.variant.txt 2>&1
               rm -f $N.master.m3u8 $N.variant.m3u8
             fi
+            # плейлисты каждого HLS-формата 720p (с нужными заголовками): сколько секунд в окне, с начала ли
+            for FID in $(jq -r '.formats[]? | select((.protocol // "") | test("m3u8")) | select((.height // 0) == 720) | .format_id' $N.json 2>/dev/null); do
+              FU=$(jq -r --arg f "$FID" '.formats[] | select(.format_id == $f) | .url' $N.json)
+              H=$(jq -r --arg f "$FID" '.formats[] | select(.format_id == $f) | (.http_headers // {}) | to_entries | map("-H\n\(.key): \(.value)") | join("\n")' $N.json)
+              mapfile -t HA <<< "$H"
+              curl -sL --max-time 20 "${HA[@]}" "$FU" -o $N.$FID.m3u8
+              { echo "### $FID"; echo "segments: $(grep -c EXTINF $N.$FID.m3u8)"; echo "total sec: $(grep EXTINF $N.$FID.m3u8 | sed -E 's/#EXTINF:([0-9.]+).*/\1/' | paste -sd+ | bc)"; grep -E '^#EXT-X-(PLAYLIST-TYPE|MEDIA-SEQUENCE|TARGETDURATION|PROGRAM-DATE-TIME|ENDLIST|STREAM-INF)' $N.$FID.m3u8 | head -6; head -12 $N.$FID.m3u8 | sed -E 's#(https?://[^/]+)[^ ]*#\1/…#g' | cut -c1-160; echo "url: $(echo "$FU" | sed -E 's#\?.*##' | cut -c1-120)"; } >> $N.formats.txt 2>&1
+              if grep -q EXT-X-STREAM-INF $N.$FID.m3u8; then V=$(grep -v '^#' $N.$FID.m3u8 | grep . | tail -1); case "$V" in http*) VU="$V";; *) VU="$(dirname "${FU%%\?*}")/$V";; esac; curl -sL --max-time 20 "${HA[@]}" "$VU" -o $N.$FID.v.m3u8; { echo "  variant segments: $(grep -c EXTINF $N.$FID.v.m3u8)  total: $(grep EXTINF $N.$FID.v.m3u8 | sed -E 's/#EXTINF:([0-9.]+).*/\1/' | paste -sd+ | bc)"; grep -E '^#EXT-X-(PLAYLIST-TYPE|MEDIA-SEQUENCE|ENDLIST)' $N.$FID.v.m3u8 | head -3; } >> $N.formats.txt 2>&1; fi
+              # ffmpeg с начала окна, 40 секунд работы: сколько успеет записать
+              HF=$(jq -r --arg f "$FID" '.formats[] | select(.format_id == $f) | (.http_headers // {}) | to_entries | map("\(.key): \(.value)\r\n") | join("")' $N.json)
+              timeout 40 ffmpeg -hide_banner -loglevel error -headers "$HF" -live_start_index 0 -i "$FU" -map 0 -c copy -f mpegts $N.$FID.ts > /dev/null 2>> $N.formats.txt
+              echo "  ffmpeg с начала за 40 с: $(ffprobe -v error -show_entries format=duration -of csv=p=0 $N.$FID.ts 2>&1)" >> $N.formats.txt
+              rm -f $N.$FID.m3u8 $N.$FID.v.m3u8 $N.$FID.ts
+            done
             rm -f $N.json
             # страница: есть ли в ней ссылки на поток
             curl -sL --max-time 20 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36" "$U" -o $N.page.html || true
@@ -64,11 +78,11 @@ jobs:
             rm -f $N.page.html
             # 1) живой край → локальный HLS (как будет в программе), 45 секунд
             mkdir -p $N.hls
-            timeout 55 bash -c "yt-dlp -q --no-warnings -f 'b[height<=720]/bv*[height<=720]+ba/b' -o - \"\$0\" | ffmpeg -hide_banner -loglevel warning -i pipe:0 -map 0 -c copy -f hls -hls_time 4 -hls_list_size 0 -hls_playlist_type event $N.hls/index.m3u8" "$U" > $N.pipe.log 2>&1 || true
+            timeout 25 bash -c "yt-dlp -q --no-warnings -f 'b[height<=720]/bv*[height<=720]+ba/b' -o - \"\$0\" | ffmpeg -hide_banner -loglevel warning -i pipe:0 -map 0 -c copy -f hls -hls_time 4 -hls_list_size 0 -hls_playlist_type event $N.hls/index.m3u8" "$U" > $N.pipe.log 2>&1 || true
             { ls -la $N.hls; echo; cat $N.hls/index.m3u8; echo; ffprobe -hide_banner $N.hls/index.m3u8; } > $N.pipe.result.txt 2>&1 || true
             rm -rf $N.hls
             # 2) с начала трансляции
-            timeout 75 yt-dlp -v --live-from-start -f 'bv*[height<=720]+ba/b[height<=720]/b' -o "$N.lfs.%(ext)s" "$U" > $N.lfs.log 2>&1 || true
+            timeout 5 yt-dlp -v --live-from-start -f 'bv*[height<=720]+ba/b[height<=720]/b' -o "$N.lfs.%(ext)s" "$U" > $N.lfs.log 2>&1 || true
             tail -c 4000 $N.lfs.log > $N.lfs.tail.txt; rm -f $N.lfs.log
             { ls -la $N.lfs* 2>&1; for f in $N.lfs*; do case "$f" in *.txt) ;; *) ffprobe -hide_banner "$f" 2>&1 | tail -8;; esac; done; } > $N.lfs.result.txt 2>&1
             find . -maxdepth 1 -type f ! -name '*.txt' ! -name '*.json' -delete
