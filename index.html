@@ -1505,6 +1505,15 @@
     </div>
 
     <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settings_gpu">Отображение</div>
+      <div class="sub" data-i18n="settings_gpu_hint">Если окно программы остаётся чёрным или мигает — выберите «Без видеокарты»: интерфейс рисует процессор, это работает на любом компьютере. Программа и сама переключается, если видит, что окно не отрисовалось.</div>
+      <div class="lang-switch">
+        <button type="button" class="lang-btn" id="gpuOnBtn" data-i18n="settings_gpu_on">Видеокарта</button>
+        <button type="button" class="lang-btn" id="gpuOffBtn" data-i18n="settings_gpu_off">Без видеокарты</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-section-title" data-i18n="settings_hold">Скорость при удержании клавиши</div>
       <div class="sub" data-i18n="settings_hold_hint">Пока клавиша зажата, видео идёт быстрее или медленнее; отпустили — обычная скорость. Сами клавиши (по умолчанию Z и X) меняются ниже, в «Горячих клавишах».</div>
       <div class="seek-row"><span data-i18n="hold_fast">Быстрее</span><select id="holdFastSel"><option value="1.25">×1,25</option><option value="1.5">×1,5</option><option value="2">×2</option><option value="3">×3</option><option value="4">×4</option></select><span class="seek-keys" id="holdFastKeys"></span></div>
@@ -1733,6 +1742,7 @@
       settings_ai: 'Нейросеть (подсветка игроков)', settings_ai_auto: 'Авто', settings_ai_cpu: 'Только процессор',
       settings_ai_hint: '«Авто» — программа сама проверяет видеокарту и, если она не подходит, считает на процессоре. Если на компьютере нет отдельной видеокарты и игроки не находятся — выберите «Только процессор»: работает на любом компьютере, но слежение идёт медленнее.',
       settings_ai_set_auto: 'Нейросеть: авто. Видеокарта будет проверена заново.', settings_ai_set_cpu: 'Нейросеть: только процессор.',
+      settings_gpu: 'Отображение', settings_gpu_hint: 'Если окно программы остаётся чёрным или мигает — выберите «Без видеокарты»: интерфейс рисует процессор, это работает на любом компьютере. Программа и сама переключается, если видит, что окно не отрисовалось.', settings_gpu_on: 'Видеокарта', settings_gpu_off: 'Без видеокарты', gpu_restart_q: 'Чтобы применить, программа перезапустится. Перезапустить сейчас?', gpu_by_arg: 'Сейчас программа запущена ярлыком «безопасный запуск» — без видеокарты.',
       dg_cap: 'Рисунок на видео', dg_1: 'Нажмите тег (F — «Клип»)', dg_1_tag: 'Тег: {name}', dg_1_new: 'Клип с {t}', dg_1_clip: 'Клип: {name}',
       dg_2: 'Стоп-кадр и рисунок', dg_2_now: 'Остановите кадр и рисуйте', dg_2_done: 'Рисунок готов', dg_3: 'Пауза', dg_3_now: 'Пауза на рисунке:', dg_cancel: 'Стереть этот рисунок',
       dg_tip: 'Как добавить рисунок: 1) нажмите тег — например, «Клип» (клавиша F); 2) на нужном кадре остановите видео и нарисуйте; 3) выберите, на сколько секунд кадр замрёт — 3, 5 или 10. Потом запись клипа продолжится.',
@@ -1882,6 +1892,7 @@
       settings_ai: 'Neural network (player highlight)', settings_ai_auto: 'Auto', settings_ai_cpu: 'CPU only',
       settings_ai_hint: '“Auto” checks the graphics card and falls back to the CPU if it does not fit. If the computer has no dedicated graphics card and players are not found, choose “CPU only”: it works on any computer, but tracking is slower.',
       settings_ai_set_auto: 'Neural network: auto. The graphics card will be checked again.', settings_ai_set_cpu: 'Neural network: CPU only.',
+      settings_gpu: 'Display', settings_gpu_hint: 'If the window stays black or flickers, choose “No graphics card”: the CPU draws the interface, which works on any computer. The app also switches by itself if it sees the window was not drawn.', settings_gpu_on: 'Graphics card', settings_gpu_off: 'No graphics card', gpu_restart_q: 'The app will restart to apply this. Restart now?', gpu_by_arg: 'The app was started with the “safe start” shortcut — without the graphics card.',
       dg_cap: 'Drawing on video', dg_1: 'Press a tag (F — “Clip”)', dg_1_tag: 'Tag: {name}', dg_1_new: 'Clip from {t}', dg_1_clip: 'Clip: {name}',
       dg_2: 'Freeze frame and draw', dg_2_now: 'Stop on a frame and draw', dg_2_done: 'Drawing ready', dg_3: 'Pause', dg_3_now: 'Pause on drawing:', dg_cancel: 'Erase this drawing',
       dg_tip: 'How to add a drawing: 1) press a tag — e.g. “Clip” (key F); 2) stop the video on the frame and draw; 3) choose how long the frame freezes — 3, 5 or 10 s. Then the clip recording continues.',
@@ -5740,6 +5751,22 @@
   function updateAiButtons() { const cpu = appSettings.aiDevice === 'cpu'; $('aiAutoBtn').classList.toggle('active', !cpu); $('aiCpuBtn').classList.toggle('active', cpu); }
   $('aiAutoBtn').addEventListener('click', () => { appSettings.aiDevice = 'auto'; saveAppSettings(); updateAiButtons(); toast(t('settings_ai_set_auto')); });
   $('aiCpuBtn').addEventListener('click', () => { appSettings.aiDevice = 'cpu'; saveAppSettings(); updateAiButtons(); toast(t('settings_ai_set_cpu')); });
+  let gpuState = null;
+  async function updateGpuButtons() {
+    try { gpuState = await window.api.gpuSafeGet(); } catch (e) { return; }
+    const off = gpuState.byArg || gpuState.saved;
+    $('gpuOnBtn').classList.toggle('active', !off); $('gpuOffBtn').classList.toggle('active', off);
+  }
+  async function setGpuSafe(on) {
+    if (!gpuState) await updateGpuButtons();
+    if (gpuState && !on && gpuState.byArg && !gpuState.saved) { toast(t('gpu_by_arg')); }
+    if (gpuState && (gpuState.byArg || gpuState.saved) === on) return;
+    await window.api.gpuSafeSet(on); await updateGpuButtons();
+    if (confirm(t('gpu_restart_q'))) window.api.appRelaunch();
+  }
+  $('gpuOnBtn').addEventListener('click', () => setGpuSafe(false));
+  $('gpuOffBtn').addEventListener('click', () => setGpuSafe(true));
+  updateGpuButtons();
   settingsBtn.addEventListener('click', updateAiButtons);
   settingsBtn.addEventListener('click', () => { const rx = appSettings.workMode === 'relax'; $('modeNormalBtn').classList.toggle('active', !rx); $('modeRelaxBtn').classList.toggle('active', rx); });
   langEnBtn.addEventListener('click', () => { applyLanguage('en'); saveAppSettings(); });

@@ -271,3 +271,12 @@
   Pop $R1
   Pop $R0
 !macroend
+
+; Ярлык в меню «Пуск» для компьютеров, где окно программы остаётся чёрным: запуск без видеокарты
+!macro customInstall
+  CreateShortCut "$SMPROGRAMS\xVision ITAA — безопасный запуск.lnk" "$appExe" "--safe-gpu" "$appExe" 0 "" "" "xVision ITAA без видеокарты — если окно программы чёрное"
+!macroend
+
+!macro customUnInstall
+  Delete "$SMPROGRAMS\xVision ITAA — безопасный запуск.lnk"
+!macroend

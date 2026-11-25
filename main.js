@@ -22,6 +22,98 @@ if (ffmpegPath && ffmpegPath.includes('app.asar') && !ffmpegPath.includes('app.a
 // Сохраняем прежнюю папку данных (настройки и проекты), чтобы при смене названия приложения ничего не потерялось
 try { app.setPath('userData', path.join(app.getPath('appData'), 'hockey-video-analysis-itaa')); } catch (e) {}
 
+// ---------- журнал запуска и безопасный режим отображения ----------
+// На некоторых компьютерах (новые или нестандартные видеокарты, старые драйверы) окно Electron остаётся чёрным:
+// страница загружена, но видеокарта её не рисует. Тогда программа сама перезапускается без видеокарты
+// («безопасный режим») и запоминает это. Вручную: ярлык «xVision ITAA — безопасный запуск» в меню «Пуск»
+// (запуск с ключом --safe-gpu) или Настройки → «Отображение».
+// Что происходило при запуске — в журнале startup.log в папке данных программы (предыдущий — startup.prev.log).
+const startLogFile = (() => {
+  try {
+    const d = app.getPath('userData'); fs.mkdirSync(d, { recursive: true });
+    const f = path.join(d, 'startup.log');
+    try { fs.renameSync(f, path.join(d, 'startup.prev.log')); } catch (e) {}
+    return f;
+  } catch (e) { return null; }
+})();
+function startLog(...a) {
+  if (!startLogFile) return;
+  try { fs.appendFileSync(startLogFile, new Date().toISOString() + ' ' + a.map((x) => (x instanceof Error ? x.message : typeof x === 'object' ? JSON.stringify(x) : String(x))).join(' ') + '\n'); } catch (e) {}
+}
+const gpuSafeFile = () => path.join(app.getPath('userData'), 'gpu-safe.json');
+const GPU_SAFE_ARG = process.argv.some((a) => a === '--safe-gpu' || a === '--disable-gpu');
+let gpuSafe = GPU_SAFE_ARG;
+try { if (fs.existsSync(gpuSafeFile())) gpuSafe = true; } catch (e) {}
+if (gpuSafe) { try { app.disableHardwareAcceleration(); } catch (e) {} }
+startLog('запуск', app.getVersion(), process.platform, os.release(), 'electron ' + process.versions.electron, gpuSafe ? 'БЕЗ видеокарты' + (GPU_SAFE_ARG ? ' (ключ запуска)' : ' (запомнено)') : 'с видеокартой');
+let gpuSwitching = false;
+function switchToSafeGpu(reason) {
+  if (gpuSafe || gpuSwitching || process.env.XV_SMOKE) return false;
+  gpuSwitching = true;
+  startLog('перезапуск без видеокарты:', reason);
+  try { fs.writeFileSync(gpuSafeFile(), JSON.stringify({ reason, at: new Date().toISOString(), version: app.getVersion() })); } catch (e) { startLog('не удалось записать gpu-safe.json', e); }
+  try { app.relaunch(); } catch (e) {}
+  app.exit(0);
+  return true;
+}
+const appStartedAt = Date.now();
+let gpuCrashes = 0;
+app.on('child-process-gone', (e, d) => {
+  startLog('процесс завершился:', d.type, d.reason, 'код ' + d.exitCode, d.name || '');
+  // видеокарта падает сразу после запуска — работаем без неё
+  if (d.type === 'GPU' && d.reason !== 'clean-exit' && Date.now() - appStartedAt < 90000 && ++gpuCrashes >= 2) switchToSafeGpu('сбой видеокарты (' + d.reason + ')');
+});
+// окно получилось однотонным (ничего не нарисовано) — видеокарта не рисует страницу
+function looksBlank(img) {
+  try {
+    if (!img || img.isEmpty()) return true;
+    const sz = img.getSize(); if (sz.width < 50 || sz.height < 50) return true;
+    const buf = img.toBitmap(); const px = buf.length / 4;
+    const step = Math.max(1, Math.floor(px / 6000)) * 4;
+    const mid = (Math.floor(px / 2) * 4);
+    const r0 = buf[mid], g0 = buf[mid + 1], b0 = buf[mid + 2];
+    let n = 0, diff = 0;
+    for (let i = 0; i + 2 < buf.length; i += step) { n++; if (Math.abs(buf[i] - r0) + Math.abs(buf[i + 1] - g0) + Math.abs(buf[i + 2] - b0) > 30) diff++; }
+    return diff <= n * 0.002;
+  } catch (e) { return false; }
+}
+function watchFirstPaint(win) {
+  const wc = win.webContents;
+  let checked = false, reloads = 0;
+  wc.on('did-fail-load', (e, code, desc, url, isMain) => { if (isMain) startLog('страница не загрузилась:', code, desc, url); });
+  wc.on('render-process-gone', (e, d) => {
+    startLog('страница упала:', d.reason, 'код ' + d.exitCode);
+    if (d.reason !== 'clean-exit' && reloads++ < 2 && !win.isDestroyed()) setTimeout(() => { try { wc.reload(); } catch (err) {} }, 500);
+  });
+  wc.on('preload-error', (e, p, err) => startLog('ошибка preload:', err));
+  wc.on('console-message', (...a) => {
+    // ошибки страницы при запуске — в журнал (первые 90 секунд)
+    const d = a[1] && typeof a[1] === 'object' ? a[1] : { level: a[1], message: a[2], lineNumber: a[3], sourceId: a[4] };
+    const lvl = d.level; const isErr = lvl === 3 || lvl === 'error';
+    if (isErr && Date.now() - appStartedAt < 90000) startLog('ошибка на странице:', d.message, (String(d.sourceId || '').split('/').pop()) + ':' + d.lineNumber);
+  });
+  wc.on('did-finish-load', () => {
+    startLog('страница загружена:', wc.getURL().split('/').pop());
+    if (checked) return; checked = true;
+    setTimeout(async () => {
+      try {
+        if (win.isDestroyed() || win.isMinimized() || !win.isVisible()) { startLog('проверка отрисовки пропущена (окно свёрнуто)'); return; }
+        const img = await wc.capturePage();
+        const blank = looksBlank(img);
+        startLog('проверка отрисовки:', blank ? 'ПУСТО' : 'ok', JSON.stringify(img && !img.isEmpty() ? img.getSize() : {}));
+        if (blank) switchToSafeGpu('окно не отрисовалось');
+      } catch (err) { startLog('проверка отрисовки: ошибка', err); }
+    }, 4000);
+  });
+}
+ipcMain.handle('gpu-safe-get', () => ({ safe: gpuSafe, byArg: GPU_SAFE_ARG, saved: (() => { try { return fs.existsSync(gpuSafeFile()); } catch (e) { return false; } })() }));
+ipcMain.handle('gpu-safe-set', (e, on) => {
+  try { if (on) fs.writeFileSync(gpuSafeFile(), JSON.stringify({ reason: 'вручную', at: new Date().toISOString(), version: app.getVersion() })); else fs.rmSync(gpuSafeFile(), { force: true }); } catch (err) { return { ok: false, error: err.message }; }
+  startLog('безопасный режим отображения вручную:', on ? 'вкл' : 'выкл');
+  return { ok: true };
+});
+ipcMain.handle('app-relaunch', () => { try { app.relaunch({ args: process.argv.slice(1).filter((a) => a !== '--safe-gpu' && a !== '--disable-gpu') }); } catch (e) {} app.exit(0); });
+
 // ---------- доступ по ключу ----------
 // Ключ выписывает лаунчер Создателя на конкретный компьютер и до определённой даты (license-core.js).
 // В программе лежит только открытая половина ключа (license/public.key) — ею ключ проверяется, но новый не создать.
@@ -302,6 +394,7 @@ function createWindow() {
   });
 
   hookUiZoom(win);
+  watchFirstPaint(win);
   win.maximize();
   win.show();
   mainWin = win;
