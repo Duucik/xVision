@@ -1,0 +1,41 @@
+total 5424
+drwxr-xr-x 2 runner runner    4096 Nov 25 07:59 .
+drwxr-xr-x 3 runner runner    4096 Nov 25 07:59 ..
+-rw-r--r-- 1 runner runner     268 Nov 25 07:59 index.m3u8
+-rw-r--r-- 1 runner runner  911048 Nov 25 07:59 index0.ts
+-rw-r--r-- 1 runner runner 1084948 Nov 25 07:59 index1.ts
+-rw-r--r-- 1 runner runner 1016892 Nov 25 07:59 index2.ts
+-rw-r--r-- 1 runner runner  834344 Nov 25 07:59 index3.ts
+-rw-r--r-- 1 runner runner  789224 Nov 25 07:59 index4.ts
+-rw-r--r-- 1 runner runner  896572 Nov 25 07:59 index5.ts
+
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:4
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:EVENT
+#EXTINF:4.000000,
+index0.ts
+#EXTINF:4.000000,
+index1.ts
+#EXTINF:4.000000,
+index2.ts
+#EXTINF:4.000000,
+index3.ts
+#EXTINF:4.000000,
+index4.ts
+#EXTINF:4.000000,
+index5.ts
+
+[hls @ 0x649baa65c000] Opening 's1.hls/index3.ts' for reading
+Input #0, hls, from 's1.hls/index.m3u8':
+  Duration: N/A, start: 13.400000, bitrate: N/A
+  Program 0 
+    Metadata:
+      variant_bitrate : 0
+  Stream #0:0: Video: h264 (High) ([27][0][0][0] / 0x001B), yuv420p, 1280x720 [SAR 1:1 DAR 16:9], 25 fps, 25 tbr, 90k tbn, start 13.400000
+    Metadata:
+      variant_bitrate : 0
+  Stream #0:1: Audio: aac (LC) ([15][0][0][0] / 0x000F), 44100 Hz, stereo, fltp, start 13.406344
+    Metadata:
+      variant_bitrate : 0

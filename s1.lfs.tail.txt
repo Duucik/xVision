@@ -1,0 +1,38 @@
+[debug] Command-line config: ['-v', '--live-from-start', '-f', 'bv*[height<=720]+ba/b[height<=720]/b', '-o', 's1.lfs.%(ext)s', 'https://vk.com/video-133823152_456242343']
+[debug] Encodings: locale UTF-8, fs utf-8, pref UTF-8, out utf-8 (No ANSI), error utf-8 (No ANSI), screen utf-8 (No ANSI)
+[debug] yt-dlp version stable@2026.11.23 from yt-dlp/yt-dlp [696c0673e] (pip)
+[debug] Python 3.14.4 (CPython x86_64 64bit) - Linux-7.0.0-1020-azure-x86_64-with-glibc2.43 (OpenSSL 3.5.5 27 Jan 2026, glibc 2.43)
+[debug] exe versions: ffmpeg 8.0.1 (setts), ffprobe 8.0.1
+[debug] Optional libraries: Cryptodome-3.24.2, brotli-1.2.1, certifi-2026.11.20, mutagen-1.48.1, requests-2.32.5, sqlite3-3.46.1, urllib3-2.6.3, websockets-17.4, yt_dlp_ejs-0.8.0
+[debug] JS runtimes: deno-2.9.8
+[debug] Proxy map: {}
+[debug] Request Handlers: urllib, requests, websockets
+[debug] Plugin directories: none
+[debug] Loaded 1744 extractors
+[vk] Extracting URL: https://vk.com/video-133823152_456242343
+[vk] -133823152_456242343: Downloading JSON metadata
+[vk] -133823152_456242343: Downloading m3u8 information
+[vk] -133823152_456242343: Downloading m3u8 information
+[vk] -133823152_456242343: Downloading MPD manifest
+WARNING: [vk] -133823152_456242343: Failed to parse XML: syntax error: line 1, column 0
+ERROR: [vk] -133823152_456242343: --live-from-start is passed, but there are no formats that can be downloaded from the start. If you want to download from the current time, use --no-live-from-start
+Traceback (most recent call last):
+  File "/home/runner/.local/lib/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 1728, in wrapper
+    return func(self, *args, **kwargs)
+  File "/home/runner/.local/lib/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 1884, in __extract_info
+    return self.process_ie_result(ie_result, download, extra_info)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/.local/lib/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 1943, in process_ie_result
+    ie_result = self.process_video_result(ie_result, download=download)
+  File "/home/runner/.local/lib/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 2941, in process_video_result
+    self.raise_no_formats(info_dict, msg=(
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+        '--live-from-start is passed, but there are no formats that can be downloaded from the start. '
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'If you want to download from the current time, use --no-live-from-start'))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/.local/lib/python3.14/site-packages/yt_dlp/YoutubeDL.py", line 1193, in raise_no_formats
+    raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
+                         expected=has_drm or ignored or expected)
+yt_dlp.utils.ExtractorError: [vk] -133823152_456242343: --live-from-start is passed, but there are no formats that can be downloaded from the start. If you want to download from the current time, use --no-live-from-start
+

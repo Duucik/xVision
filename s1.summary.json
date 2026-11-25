@@ -1,0 +1,113 @@
+{
+  "extractor": "vk",
+  "id": "-133823152_456242343",
+  "is_live": true,
+  "live_status": "is_live",
+  "was_live": false,
+  "title": "Территория хоккея U14. Москва-ЮФО | 25.11.2026 9:15 2026-11-25 07:57",
+  "release_timestamp": null,
+  "timestamp": 1795536233,
+  "duration": null,
+  "formats": [
+    {
+      "format_id": "hls_live-0",
+      "protocol": "m3u8_native",
+      "height": 240,
+      "fps": 25.0,
+      "vcodec": null,
+      "acodec": null,
+      "ext": "mp4",
+      "tbr": 485.4
+    },
+    {
+      "format_id": "hls_live_ondemand-0",
+      "protocol": "m3u8_native",
+      "height": 240,
+      "fps": 30.0,
+      "vcodec": "avc1.42001e",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "tbr": 409.6
+    },
+    {
+      "format_id": "hls_live-1",
+      "protocol": "m3u8_native",
+      "height": 360,
+      "fps": 25.0,
+      "vcodec": null,
+      "acodec": null,
+      "ext": "mp4",
+      "tbr": 951.665
+    },
+    {
+      "format_id": "hls_live_ondemand-1",
+      "protocol": "m3u8_native",
+      "height": 360,
+      "fps": 30.0,
+      "vcodec": "avc1.4d001f",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "tbr": 921.6
+    },
+    {
+      "format_id": "hls_live-2",
+      "protocol": "m3u8_native",
+      "height": 480,
+      "fps": 25.0,
+      "vcodec": null,
+      "acodec": null,
+      "ext": "mp4",
+      "tbr": 1599.659
+    },
+    {
+      "format_id": "hls_live_ondemand-2",
+      "protocol": "m3u8_native",
+      "height": 480,
+      "fps": 30.0,
+      "vcodec": "avc1.4d001f",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "tbr": 1638.4
+    },
+    {
+      "format_id": "hls_live-3",
+      "protocol": "m3u8_native",
+      "height": 720,
+      "fps": 25.0,
+      "vcodec": null,
+      "acodec": null,
+      "ext": "mp4",
+      "tbr": 3156.418
+    },
+    {
+      "format_id": "hls_live_ondemand-3",
+      "protocol": "m3u8_native",
+      "height": 720,
+      "fps": 30.0,
+      "vcodec": "avc1.640029",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "tbr": 3686.4
+    },
+    {
+      "format_id": "hls_live-4",
+      "protocol": "m3u8_native",
+      "height": 1080,
+      "fps": 25.0,
+      "vcodec": null,
+      "acodec": null,
+      "ext": "mp4",
+      "tbr": 7065.336
+    },
+    {
+      "format_id": "hls_live_ondemand-4",
+      "protocol": "m3u8_native",
+      "height": 1080,
+      "fps": 30.0,
+      "vcodec": "avc1.640029",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "tbr": 8294.4
+    }
+  ]
+}
