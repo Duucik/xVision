@@ -117,7 +117,7 @@
           "target": "dmg"
         }
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon-mac.png",
       "category": "public.app-category.sports",
       "identity": null,
       "hardenedRuntime": false,
