@@ -1,0 +1,74 @@
+######## hls_live_ondemand-3
+url: https://vkvsd269.okcdn.ru/cmaf/21785299847809/sig/…/expires/…/srcIp/…/urls/176.112.172.71/clientType/13/srcAg/CHROME/mid/17810965677953/get/CIGPoYKvhgQQ6AcYBTIICgYIgAoQ0AU6BAjE2AJaBggDEAIoF2ICCBg6bFXAu5btYQ/track.m3u8
+--- плейлист:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:4
+#EXT-X-MEDIA-SEQUENCE:3180
+#EXT-X-VK-PLAYBACK-DURATION:7174935
+#EXT-X-VK-START-TIME:2026-11-25T09:01:25.319+03:00
+#EXT-X-PROGRAM-DATE-TIME:2026-11-25T11:00:21.159+03:00
+#EXTINF:2.000,
+t7135840.ts
+#EXTINF:2.520,
+t7137840.ts
+#EXTINF:3.520,
+t7140360.ts
+#EXTINF:2.320,
+... последний: t7178680.ts
+--- кусочки по времени:
+t0.ts → 200 189692 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t2000.ts → 200 189880 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t60000.ts → 200 188188 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t600000.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t3600000.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+--- параметры плейлиста:
+t=0 → сегм. 20, seq MEDIA-SEQUENCE:3183, первый t7143880.ts
+offset=0 → сегм. 20, seq MEDIA-SEQUENCE:3183, первый t7143880.ts
+start=0 → сегм. 20, seq MEDIA-SEQUENCE:3183, первый t7143880.ts
+from=0 → сегм. 20, seq MEDIA-SEQUENCE:3183, первый t7143880.ts
+time=0 → сегм. 20, seq MEDIA-SEQUENCE:3184, первый t7146200.ts
+ts=0 → сегм. 20, seq MEDIA-SEQUENCE:3184, первый t7146200.ts
+playback=0 → сегм. 20, seq MEDIA-SEQUENCE:3184, первый t7146200.ts
+dvr=1 → сегм. 20, seq MEDIA-SEQUENCE:3185, первый t7148200.ts
+start_time=0 → сегм. 20, seq MEDIA-SEQUENCE:3185, первый t7148200.ts
+begin=0 → сегм. 20, seq MEDIA-SEQUENCE:3185, первый t7148200.ts
+offset_p=0 → сегм. 20, seq MEDIA-SEQUENCE:3186, первый t7150200.ts
+position=0 → сегм. 20, seq MEDIA-SEQUENCE:3186, первый t7150200.ts
+######## hls_live-3
+url: https://vkvsd269.okcdn.ru/hls/21785299847809.m3u8/sig/…/expires/…/srcIp/…/urls/176.112.172.71/clientType/13/srcAg/CHROME/mid/17810965677953/21785299847809_high/index.m3u8
+--- плейлист:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-MEDIA-SEQUENCE:3368
+#EXT-X-TARGETDURATION:3
+#EXT-X-PROGRAM-DATE-TIME:2026-11-25T08:00:26.809+00:00
+#EXTINF:2.040,
+2511878020903885960_2659.ts
+#EXTINF:2.040,
+2511878020903885960_2660.ts
+#EXTINF:2.040,
+2511878020903885960_2661.ts
+#EXTINF:2.040,
+2511878020903885960_2662.ts
+#EXTINF:2.040,
+... последний: 2511878020903885960_2681.ts
+--- кусочки по времени:
+t0.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t2000.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t60000.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t600000.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+t3600000.ts → 404 0 · /home/runner/work/_temp/20aadde3-ba4f-46ef-b465-d2255e4f363e.sh: line 19: ffprobe: command not found
+--- параметры плейлиста:
+t=0 → сегм. 24, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+offset=0 → сегм. 24, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+start=0 → сегм. 24, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+from=0 → сегм. 25, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+time=0 → сегм. 25, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+ts=0 → сегм. 25, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+playback=0 → сегм. 25, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+dvr=1 → сегм. 25, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+start_time=0 → сегм. 25, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+begin=0 → сегм. 26, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+offset_p=0 → сегм. 26, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
+position=0 → сегм. 26, seq MEDIA-SEQUENCE:3368, первый 2511878020903885960_2659.ts
