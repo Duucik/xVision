@@ -1,0 +1,70 @@
+name: Снимки установщиков
+on:
+  push:
+    branches: [shots]
+permissions:
+  contents: write
+jobs:
+  win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+      - run: node prepare-build.js
+      - env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+        run: npx electron-builder --win --x64 --publish never
+      - name: Снимки страниц
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+          New-Item -ItemType Directory -Force out | Out-Null
+          function Shot($n){ $b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp=New-Object System.Drawing.Bitmap $b.Width,$b.Height; $g=[System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen(0,0,0,0,$bmp.Size); $bmp.Save("out/win-$n.png"); $g.Dispose(); $bmp.Dispose() }
+          $exe = Get-ChildItem dist/*.exe | Select-Object -First 1
+          $p = Start-Process $exe.FullName -PassThru
+          $ws = New-Object -ComObject WScript.Shell
+          Start-Sleep 10; $ws.AppActivate($p.Id) | Out-Null; Start-Sleep 1; Shot 1
+          $ws.SendKeys('{ENTER}'); Start-Sleep 3; Shot 2
+          $ws.AppActivate($p.Id) | Out-Null; $ws.SendKeys('{ENTER}'); Start-Sleep 3; Shot 3
+          $ws.AppActivate($p.Id) | Out-Null; $ws.SendKeys('{ENTER}'); Start-Sleep 2; Shot 4
+          Start-Sleep 60; Shot 5
+          Get-Process | Where-Object { $_.ProcessName -like 'xVision*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        with: { name: win, path: out }
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+      - run: node prepare-build.js
+      - env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+        run: npx electron-builder --mac dmg --arm64 --publish never
+      - name: Снимок окна установки
+        run: |
+          mkdir -p out
+          ls -la dist build/background.tiff
+          DMG=$(ls dist/*.dmg | head -1)
+          hdiutil attach "$DMG" -noautoopen
+          VOL=$(ls -d /Volumes/xVision* | head -1)
+          open "$VOL"; sleep 6
+          screencapture -x out/mac-light.png || true
+          osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || true
+          sleep 3; screencapture -x out/mac-dark.png || true
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with: { name: mac, path: out }
+  publish:
+    needs: [win, mac]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: shots }
+      - run: |
+          git init -q o && cd o && cp -r ../shots/* . 2>/dev/null; ls -R
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm shots
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:shots-out
