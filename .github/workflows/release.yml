@@ -112,6 +112,9 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Подготовка (загрузчик видео, нейросети)
         run: node prepare-build.js
+      - name: Сборщик для Mac
+        # сборщик 26-й версии правильно записывает фон окна установки (24-я — нет); Windows собирается прежним
+        run: npm install --no-save --no-audit --no-fund electron-builder@26.18.0
       - name: Сборка для Mac (${{ matrix.arch }})
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

@@ -136,7 +136,7 @@
       "title": "xVision ITAA ${version}",
       "background": "build/dmg-background.png",
       "iconSize": 110,
-      "window": { "width": 660, "height": 420 },
+      "window": { "width": 660, "height": 448 },
       "contents": [
         { "x": 180, "y": 230 },
         { "x": 480, "y": 230, "type": "link", "path": "/Applications" }
