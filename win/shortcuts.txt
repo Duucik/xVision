@@ -1,0 +1,7 @@
+
+Name
+----
+xVision ITAA — безопасный запуск.lnk
+xVision ITAA.lnk
+
+app exists: True
