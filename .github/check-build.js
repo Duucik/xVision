@@ -9,5 +9,5 @@ let asar = null;
 for (const n of ['@electron/asar', 'asar']) { try { asar = require(n); break; } catch (e) {} }
 if (!asar) { console.log('::warning::модуль asar не найден — содержимое app.asar не проверено'); process.exit(0); }
 const list = asar.listPackage(path.join(res, 'app.asar')).map((x) => x.replace(/\\/g, '/'));
-for (const f of ['/license/public.key', '/license.html', '/Что нового.txt', '/node_modules/electron-updater/package.json', '/live.js', '/vkdvr.js', '/vendor/hls.min.js']) if (!list.includes(f)) fail('в сборке нет ' + f);
+for (const f of ['/license/public.key', '/license.html', '/Что нового.txt', '/node_modules/electron-updater/package.json', '/live.js', '/vkdvr.js', '/sequence.js', '/vendor/hls.min.js']) if (!list.includes(f)) fail('в сборке нет ' + f);
 console.log('защита, «Что нового» и модуль обновлений на месте');
