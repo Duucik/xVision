@@ -222,7 +222,6 @@
   .live-strip { display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 8; align-items: center; gap: 9px; padding: 5px 6px 5px 12px; border-radius: 10px;
     background: rgba(14,14,16,0.88); border: 1px solid var(--border2); font-size: 12px; color: var(--muted); box-shadow: 0 6px 18px rgba(0,0,0,0.4); white-space: nowrap; }
   .live-strip.show { display: flex; }
-  body.relax .live-strip { z-index: 45; }
   .live-strip .ls-dot { width: 8px; height: 8px; border-radius: 50%; background: #E5484D; animation: liveBlink 1.4s ease-in-out infinite; }
   .live-strip.warn .ls-dot { background: #E8B33B; }
   .live-strip.idle .ls-dot { background: var(--faint); animation: none; }
@@ -663,36 +662,6 @@
   .merge-item button:disabled { opacity: 0.25; cursor: default; }
   .merge-item button .ic { width: 14px; height: 14px; }
   .merge-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
-  .row-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-  /* склейка, открытая как одно видео: ролики по порядку, перетаскиваются */
-  .seq-bar { display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 9; max-width: calc(100% - 24px); align-items: center; gap: 6px; padding: 5px 6px; border-radius: 11px;
-    background: rgba(14,14,17,0.82); border: 1px solid var(--border2); backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
-  .seq-bar.show { display: flex; }
-  body.relax .seq-bar { z-index: 45; }
-  .seq-chips { display: flex; gap: 5px; overflow-x: auto; min-width: 0; scrollbar-width: thin; }
-  .seq-chip { position: relative; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px 0 4px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--border2); color: var(--text);
-    font-size: 12px; cursor: grab; flex-shrink: 0; max-width: 220px; user-select: none; }
-  .seq-chip:hover { border-color: var(--chrome); }
-  .seq-chip.cur { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-  .seq-chip.drag { opacity: 0.35; }
-  .seq-chip.drop-before::before, .seq-chip.drop-after::after { content: ''; position: absolute; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: var(--accent); }
-  .seq-chip.drop-before::before { left: -5px; } .seq-chip.drop-after::after { right: -5px; }
-  .seq-chip .n { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; background: rgba(255,255,255,0.08); font-size: 11px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
-  .seq-chip.cur .n { background: var(--accent); color: #fff; }
-  .seq-chip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-  .seq-chip .d { color: var(--faint); font-variant-numeric: tabular-nums; font-size: 11px; flex-shrink: 0; }
-  .seq-chip .x { width: 18px; height: 18px; border: 0; padding: 0; background: transparent; color: var(--faint); border-radius: 5px; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
-  .seq-chip .x:hover { background: rgba(255,255,255,0.1); color: var(--text); }
-  .seq-chip .x .ic { width: 12px; height: 12px; }
-  .seq-chip.wait, .seq-chip.prep { cursor: default; color: var(--muted); border-style: dashed; }
-  .seq-chip.prep .pg { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); border-radius: 2px; }
-  .seq-chip.error { cursor: default; border-color: #a33; color: #f0a0a0; }
-  .seq-btn { height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border2); background: var(--panel2); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap; }
-  .seq-btn:hover:not(:disabled) { border-color: var(--accent); }
-  .seq-btn:disabled { opacity: 0.45; cursor: default; }
-  .seq-btn .ic { width: 14px; height: 14px; }
-  .seq-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .seq-sep { width: 1px; height: 20px; background: var(--border2); flex-shrink: 0; }
   .merge-info { color: var(--muted); font-size: 12px; }
   .link-prog { display: none; margin-top: 16px; }
   .link-prog.show { display: block; }
@@ -1216,7 +1185,6 @@
 
     <section class="work" id="work">
       <div class="stage" id="stage">
-        <div class="seq-bar" id="seqBar"><div class="seq-chips" id="seqChips"></div><span class="seq-sep"></span><button type="button" class="seq-btn" id="seqAddBtn"><svg class="ic"><use href="#i-plus"/></svg><span data-i18n="seq_add">Видео</span></button><button type="button" class="seq-btn primary" id="seqMergeBtn"><svg class="ic"><use href="#i-film"/></svg><span id="seqMergeLabel" data-i18n="seq_merge">Склеить в один файл</span></button></div>
         <div class="live-strip" id="liveStrip"><span class="ls-dot"></span><span class="ls-text" id="liveStripText"></span><button type="button" class="ls-btn" id="liveResumeBtn"></button><button type="button" class="ls-btn" id="liveActBtn"></button></div>
         <div class="video-box" id="videoBox">
           <textarea class="v-text" id="vText" rows="1" spellcheck="false" autocomplete="off"></textarea>
@@ -1433,7 +1401,7 @@
 <div class="modal-overlay" id="mergeOverlay">
   <div class="modal modal-wide">
     <h2><svg class="ic"><use href="#i-film"/></svg><span data-i18n="merge_title">Склейка видеороликов</span></h2>
-    <div class="sub" data-i18n="merge_sub">Перетащите сюда ролики с компьютера или добавьте их кнопкой. Они откроются друг за другом как одно видео — размечайте, рисуйте, снимайте клипы. Порядок роликов меняется перетаскиванием прямо над плеером, туда же можно добавить ещё. В один файл они склеиваются в конце кнопкой «Склеить в один файл».</div>
+    <div class="sub" data-i18n="merge_sub">Перетащите сюда несколько роликов с компьютера или добавьте их кнопкой. Они соединятся в один файл по порядку списка; каждый ролик появится в журнале клипов — с ним можно работать как с обычным клипом.</div>
     <div class="merge-drop" id="mergeDrop">
       <div class="merge-empty" id="mergeEmpty"><svg class="ic"><use href="#i-film"/></svg><span data-i18n="merge_empty">Перетащите видеоролики сюда</span></div>
       <div class="merge-list" id="mergeList"></div>
@@ -1446,7 +1414,7 @@
     <div class="link-err" id="mergeErr"></div>
     <div class="modal-actions">
       <button class="tbtn" id="mergeCloseBtn" data-i18n="link_close">Закрыть</button>
-      <button class="tbtn primary" id="mergeGoBtn"><svg class="ic"><use href="#i-film"/></svg><span id="mergeGoLabel" data-i18n="merge_go">Открыть</span></button>
+      <button class="tbtn primary" id="mergeGoBtn"><svg class="ic"><use href="#i-film"/></svg><span id="mergeGoLabel" data-i18n="merge_go">Склеить и открыть</span></button>
     </div>
   </div>
 </div>
@@ -1522,8 +1490,6 @@
       <button type="button" class="tbtn sm" id="licChangeBtn">Ввести другой ключ</button>
     </div>
 
-    </div>
-
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="settings_ai">Нейросеть (подсветка игроков)</div>
       <div class="sub" data-i18n="settings_ai_hint">«Авто» — программа сама проверяет видеокарту и, если она не подходит, считает на процессоре. Если на компьютере нет отдельной видеокарты и игроки не находятся — выберите «Только процессор»: работает на любом компьютере, но слежение идёт медленнее.</div>
@@ -1531,12 +1497,6 @@
         <button type="button" class="lang-btn" id="aiAutoBtn" data-i18n="settings_ai_auto">Авто</button>
         <button type="button" class="lang-btn" id="aiCpuBtn" data-i18n="settings_ai_cpu">Только процессор</button>
       </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="settings_log">Журнал работы</div>
-      <div class="sub" data-i18n="settings_log_hint">Программа записывает, что происходило: открытые разборы, клипы, выгрузки, склейки, трансляции и ошибки. Если что-то пошло не так — нажмите «Сохранить для отправки»: на рабочем столе появится один файл, его можно переслать.</div>
-      <div class="row-btns"><button type="button" class="tbtn" id="logSaveBtn"><svg class="ic"><use href="#i-download"/></svg><span data-i18n="log_save">Сохранить для отправки</span></button><button type="button" class="tbtn" id="logOpenBtn"><svg class="ic"><use href="#i-folder"/></svg><span data-i18n="log_open">Папка журналов</span></button></div>
     </div>
 
     <div class="settings-section">
@@ -1580,9 +1540,6 @@
 
 <script src="vendor/hls.min.js"></script>
 <script>
-  // ошибки окна — в журнал работы (Настройки → Журнал работы)
-  window.addEventListener('error', (e) => { try { window.api.log('окно', 'ошибка: ' + (e.message || '') + ' ' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || '') + (e.error && e.error.stack ? '\n' + e.error.stack : '')); } catch (x) {} });
-  window.addEventListener('unhandledrejection', (e) => { try { const r = e.reason; window.api.log('окно', 'необработанная ошибка: ' + (r && (r.stack || r.message) || String(r))); } catch (x) {} });
 (function () {
   // ======================================================================
   //  xVision — разбор видео: нарезка, теги, рисование поверх видео, экспорт
@@ -1769,26 +1726,17 @@
       hold_label: 'Пауза на рисунке', hold_off: 'Выкл', hold_s: 'с',
       split_label: 'Журнал клипов ({n}) ▲', lc_cap: 'Последний клип', lc_play: 'С начала', lc_edit: 'Редактор', lc_tip: 'Щелчок — смотреть клип с начала, правая кнопка — редактор клипа. Название можно исправить прямо здесь.', rc_cap: 'Ранее', lc_tip_short: 'Щелчок — смотреть с начала, правая кнопка — редактор клипа',
       cp_title: 'Клип снят', cp_hint: 'Enter — сохранить и смотреть дальше · Esc — оставить название', cp_edit: 'Редактор клипа', cp_ok: 'Сохранить',
-      settings_mode: 'Режим работы', mode_normal: 'Обычный', mode_relax: 'Relax', mode_relax_on: 'Режим Relax: инструменты появляются, когда подводите мышь к краю экрана. Выключить — снова кнопкой Relax.', relax_on_tip: 'Relax: видео на всё рабочее место, инструменты появляются у краёв экрана', relax_off_tip: 'Выйти из режима Relax',
+      settings_mode: 'Режим работы', mode_normal: 'Обычный', mode_relax: 'Relax', mode_relax_on: 'Режим Relax: инструменты появляются, когда подводите мышь к краю экрана. Выключить — снова кнопкой Relax.', relax_on_tip: '«Relax» — видео занимает всё рабочее место. Теги, рисование, подсказки и плеер появляются, когда подводите мышь к краю экрана.', relax_off_tip: 'Выйти из режима Relax',
       settings_mode_hint: '«Relax» — видео занимает всё рабочее место. Теги, рисование, подсказки и плеер прячутся и появляются, когда подводите мышь к краю: теги — сверху, рисование — слева, подсказки — справа, плеер и журнал клипов — снизу. Снятый клип (F — начало, F — конец) сразу предлагается подписать: Enter — сохранить и смотреть дальше.', slow_mark: 'Клип замедлен', split_last: 'Последний', split_last_tip: 'Последний снятый клип — щелчок воспроизводит его',
       tf_cap: 'Теги', tf_all: 'Все', tf_none: 'Без тега', tf_hint: 'Щелчок по тегу — только его клипы; можно выбрать несколько',
       home_merge: 'Склеить видеоролики', merge_title: 'Склейка видеороликов',
-      merge_sub: 'Перетащите сюда ролики с компьютера или добавьте их кнопкой. Они откроются друг за другом как одно видео — размечайте, рисуйте, снимайте клипы. Порядок роликов меняется перетаскиванием прямо над плеером, туда же можно добавить ещё. В один файл они склеиваются в конце кнопкой «Склеить в один файл».',
-      merge_empty: 'Перетащите видеоролики сюда', merge_add: 'Добавить файлы', merge_go: 'Открыть',
-      seq_add: 'Видео', seq_add_tip: 'Добавить ролики в конец (можно и перетащить файлы в окно)', seq_merge: 'Склеить в один файл', seq_merge_tip: 'Соединить ролики в один MP4 в этом порядке. Клипы и рисунки останутся.',
-      seq_prep_first: 'Готовлю первый ролик…', seq_prep: 'готовится {p}%', seq_wait: 'в очереди', seq_err: 'ошибка', seq_retry: 'Повторить', seq_remove: 'Убрать ролик',
-      seq_drag_tip: 'Перетащите, чтобы поменять порядок. Щелчок — перейти к ролику.',
-      seq_remove_q: 'Убрать ролик «{n}» из склейки? Клипов в нём: {c} — они удалятся вместе с рисунками.', seq_remove_q0: 'Убрать ролик «{n}» из склейки?',
-      seq_added: 'Добавлено роликов: {n}. Они появятся в конце, когда подготовятся.', seq_ready: 'Ролик готов: {n}',
-      seq_merge_q: 'Соединить {n} роликов в один файл в этом порядке? Разбор (клипы, рисунки) перейдёт на готовый файл.', seq_merge_wait: 'Дождитесь, пока подготовятся все ролики.',
-      seq_merging: 'Склеиваю… {p}%', seq_merged: 'Готово: {f}', seq_fail: 'Не получилось: {e}', seq_busy_rec: 'Сначала закончите запись тега.',
-      seq_dropped: 'Ролики добавлены в склейку', merge_stop: 'Остановить', merge_count: 'Роликов: {n}',
-      merge_up: 'Выше', merge_down: 'Ниже', merge_del: 'Убрать из списка', merge_prep: 'Подготовка…', merge_fail: 'Не удалось открыть ролики.', merge_done: 'Склейка готова: клипов в журнале — {n}',
+      merge_sub: 'Перетащите сюда несколько роликов с компьютера или добавьте их кнопкой. Они соединятся в один файл по порядку списка; каждый ролик появится в журнале клипов — с ним можно работать как с обычным клипом.',
+      merge_empty: 'Перетащите видеоролики сюда', merge_add: 'Добавить файлы', merge_go: 'Склеить и открыть', merge_stop: 'Остановить', merge_count: 'Роликов: {n}',
+      merge_up: 'Выше', merge_down: 'Ниже', merge_del: 'Убрать из списка', merge_prep: 'Подготовка…', merge_fail: 'Не удалось склеить ролики.', merge_done: 'Склейка готова: клипов в журнале — {n}',
       merge_skipped: 'Пропущено файлов (не видео): {n}',
       settings_ai: 'Нейросеть (подсветка игроков)', settings_ai_auto: 'Авто', settings_ai_cpu: 'Только процессор',
       settings_ai_hint: '«Авто» — программа сама проверяет видеокарту и, если она не подходит, считает на процессоре. Если на компьютере нет отдельной видеокарты и игроки не находятся — выберите «Только процессор»: работает на любом компьютере, но слежение идёт медленнее.',
       settings_ai_set_auto: 'Нейросеть: авто. Видеокарта будет проверена заново.', settings_ai_set_cpu: 'Нейросеть: только процессор.',
-      settings_log: 'Журнал работы', settings_log_hint: 'Программа записывает, что происходило: открытые разборы, клипы, выгрузки, склейки, трансляции и ошибки. Если что-то пошло не так — нажмите «Сохранить для отправки»: на рабочем столе появится один файл, его можно переслать.', log_save: 'Сохранить для отправки', log_open: 'Папка журналов', log_saved: 'Журнал сохранён на рабочий стол: {f}', log_fail: 'Не удалось сохранить журнал.',
       settings_gpu: 'Отображение', settings_gpu_hint: 'Если окно программы остаётся чёрным или мигает — выберите «Без видеокарты»: интерфейс рисует процессор, это работает на любом компьютере. Программа и сама переключается, если видит, что окно не отрисовалось.', settings_gpu_on: 'Видеокарта', settings_gpu_off: 'Без видеокарты', gpu_restart_q: 'Чтобы применить, программа перезапустится. Перезапустить сейчас?', gpu_by_arg: 'Сейчас программа запущена ярлыком «безопасный запуск» — без видеокарты.',
       dg_cap: 'Рисунок на видео', dg_1: 'Нажмите тег (F — «Клип»)', dg_1_tag: 'Тег: {name}', dg_1_new: 'Клип с {t}', dg_1_clip: 'Клип: {name}',
       dg_2: 'Стоп-кадр и рисунок', dg_2_now: 'Остановите кадр и рисуйте', dg_2_done: 'Рисунок готов', dg_3: 'Пауза', dg_3_now: 'Пауза на рисунке:', dg_cancel: 'Стереть этот рисунок',
@@ -1894,7 +1842,7 @@
       project_restored: 'Восстановлен прогресс по этому видео',
       home_open: 'Открыть видео матча', home_recent: 'Сохранённые разборы',
       home_empty: 'Пока нет сохранённых разборов. Откройте видео — прогресс сохраняется автоматически, и вы сможете вернуться к разбору в любой момент.',
-      home_drop: 'Отпустите видеофайл, чтобы открыть', seq_drop: 'Отпустите — ролики добавятся в склейку', project_clips: 'клипов',
+      home_drop: 'Отпустите видеофайл, чтобы открыть', project_clips: 'клипов',
       project_missing: 'видео не найдено — нажмите, чтобы указать файл',
       project_delete: 'Удалить сохранение? Видео останется на диске.', project_edited: 'изменён',
       timing_btn: 'Тайминги', timing_btn_title: 'Нарезка по таймингам',
@@ -1928,26 +1876,17 @@
       hold_label: 'Pause on drawing', hold_off: 'Off', hold_s: 's',
       split_label: 'Clip log ({n}) ▲', lc_cap: 'Last clip', lc_play: 'From start', lc_edit: 'Editor', lc_tip: 'Click to watch the clip from the start, right-click for the clip editor. You can rename it right here.', rc_cap: 'Earlier', lc_tip_short: 'Click to watch from the start, right-click for the clip editor',
       cp_title: 'Clip recorded', cp_hint: 'Enter — save and keep watching · Esc — keep the name', cp_edit: 'Clip editor', cp_ok: 'Save',
-      settings_mode: 'Work mode', mode_normal: 'Normal', mode_relax: 'Relax', mode_relax_on: 'Relax mode: tools appear when you move the mouse to the screen edge. Press Relax again to turn it off.', relax_on_tip: 'Relax: video fills the workspace, tools appear at the screen edges', relax_off_tip: 'Leave Relax mode',
+      settings_mode: 'Work mode', mode_normal: 'Normal', mode_relax: 'Relax', mode_relax_on: 'Relax mode: tools appear when you move the mouse to the screen edge. Press Relax again to turn it off.', relax_on_tip: '“Relax” — the video takes the whole workspace. Tags, drawing, tips and the player appear when you move the mouse to an edge.', relax_off_tip: 'Leave Relax mode',
       settings_mode_hint: '“Relax” — the video takes the whole workspace. Tags, drawing, tips and the player hide and appear when you move the mouse to an edge: tags — top, drawing — left, tips — right, player and clip log — bottom. A recorded clip (F — start, F — end) is offered for naming right away: Enter — save and keep watching.', slow_mark: 'Slow-motion clip', split_last: 'Last', split_last_tip: 'Last recorded clip — click to play it',
       tf_cap: 'Tags', tf_all: 'All', tf_none: 'No tag', tf_hint: 'Click a tag to show only its clips; several can be selected',
       home_merge: 'Join video files', merge_title: 'Join video files',
-      merge_sub: 'Drop video files here or add them with the button. They open one after another as a single video — tag, draw, cut clips. Reorder them by dragging right above the player and add more there. They are joined into one file at the end with “Join into one file”.',
-      merge_empty: 'Drop video files here', merge_add: 'Add files', merge_go: 'Open',
-      seq_add: 'Video', seq_add_tip: 'Add files at the end (you can also drop files into the window)', seq_merge: 'Join into one file', seq_merge_tip: 'Join the videos into one MP4 in this order. Clips and drawings stay.',
-      seq_prep_first: 'Preparing the first video…', seq_prep: 'preparing {p}%', seq_wait: 'queued', seq_err: 'error', seq_retry: 'Retry', seq_remove: 'Remove video',
-      seq_drag_tip: 'Drag to reorder. Click to jump to the video.',
-      seq_remove_q: 'Remove “{n}”? Clips in it: {c} — they are deleted with their drawings.', seq_remove_q0: 'Remove “{n}”?',
-      seq_added: 'Videos added: {n}. They appear at the end once prepared.', seq_ready: 'Video ready: {n}',
-      seq_merge_q: 'Join {n} videos into one file in this order? The session (clips, drawings) moves to the new file.', seq_merge_wait: 'Wait until all videos are prepared.',
-      seq_merging: 'Joining… {p}%', seq_merged: 'Done: {f}', seq_fail: 'Failed: {e}', seq_busy_rec: 'Finish the tag recording first.',
-      seq_dropped: 'Videos added to the sequence', merge_stop: 'Stop', merge_count: 'Files: {n}',
-      merge_up: 'Up', merge_down: 'Down', merge_del: 'Remove from the list', merge_prep: 'Preparing…', merge_fail: 'Could not open the files.', merge_done: 'Joined: clips in the log — {n}',
+      merge_sub: 'Drop several video files here or add them with the button. They are joined into one file in list order; each file appears in the clip log and can be worked on like any clip.',
+      merge_empty: 'Drop video files here', merge_add: 'Add files', merge_go: 'Join and open', merge_stop: 'Stop', merge_count: 'Files: {n}',
+      merge_up: 'Up', merge_down: 'Down', merge_del: 'Remove from the list', merge_prep: 'Preparing…', merge_fail: 'Could not join the files.', merge_done: 'Joined: clips in the log — {n}',
       merge_skipped: 'Skipped files (not video): {n}',
       settings_ai: 'Neural network (player highlight)', settings_ai_auto: 'Auto', settings_ai_cpu: 'CPU only',
       settings_ai_hint: '“Auto” checks the graphics card and falls back to the CPU if it does not fit. If the computer has no dedicated graphics card and players are not found, choose “CPU only”: it works on any computer, but tracking is slower.',
       settings_ai_set_auto: 'Neural network: auto. The graphics card will be checked again.', settings_ai_set_cpu: 'Neural network: CPU only.',
-      settings_log: 'Work log', settings_log_hint: 'The app records what happened: opened sessions, clips, exports, merges, streams and errors. If something went wrong, press “Save to send”: a single file appears on the desktop that you can send.', log_save: 'Save to send', log_open: 'Logs folder', log_saved: 'Log saved to the desktop: {f}', log_fail: 'Could not save the log.',
       settings_gpu: 'Display', settings_gpu_hint: 'If the window stays black or flickers, choose “No graphics card”: the CPU draws the interface, which works on any computer. The app also switches by itself if it sees the window was not drawn.', settings_gpu_on: 'Graphics card', settings_gpu_off: 'No graphics card', gpu_restart_q: 'The app will restart to apply this. Restart now?', gpu_by_arg: 'The app was started with the “safe start” shortcut — without the graphics card.',
       dg_cap: 'Drawing on video', dg_1: 'Press a tag (F — “Clip”)', dg_1_tag: 'Tag: {name}', dg_1_new: 'Clip from {t}', dg_1_clip: 'Clip: {name}',
       dg_2: 'Freeze frame and draw', dg_2_now: 'Stop on a frame and draw', dg_2_done: 'Drawing ready', dg_3: 'Pause', dg_3_now: 'Pause on drawing:', dg_cancel: 'Erase this drawing',
@@ -2053,7 +1992,7 @@
       project_restored: 'Progress for this video was restored',
       home_open: 'Open match video', home_recent: 'Saved sessions',
       home_empty: 'No saved sessions yet. Open a video — progress is saved automatically, and you can return to it any time.',
-      home_drop: 'Drop the video file to open it', seq_drop: 'Drop — the videos are added to the sequence', project_clips: 'clips',
+      home_drop: 'Drop the video file to open it', project_clips: 'clips',
       project_missing: 'video not found — click to locate the file',
       project_delete: 'Delete this save? The video file stays on disk.', project_edited: 'edited',
       timing_btn: 'Timecodes', timing_btn_title: 'Cut by timecodes',
@@ -2155,7 +2094,6 @@
     video.pause();
     if (video._hls) { try { video._hls.destroy(); } catch (e) {} video._hls = null; }
     liveInfo = null; liveRenderUI();
-    seqInfo = null; seqRender();
     cancelRaf();
     if (holdState) endHold(false);
     exitDrawMode();
@@ -2191,7 +2129,6 @@
   // пока идёт запись — растущий список: можно отматывать и возвращаться в эфир.
   const isLivePath = (p) => /\.m3u8$/i.test(p || '');
   let liveInfo = null; // { vod, active, state, dur, title, url, behind }
-  let seqInfo = null;  // открытая склейка роликов (см. «склейка, открытая как одно видео»)
   let liveStartAt = null;
   async function setVideoSource(el, p, opts) {
     if (el._hls) { try { el._hls.destroy(); } catch (e) {} el._hls = null; }
@@ -2239,7 +2176,7 @@
   }
   async function liveAttach(p) {
     liveInfo = null;
-    if (!isLivePath(p) || /(^|[\\/])sequence\.m3u8$/i.test(p)) { liveRenderUI(); return; }
+    if (!isLivePath(p)) { liveRenderUI(); return; }
     let st = null; try { st = await window.api.liveState(); } catch (e) {}
     const active = !!(st && st.active && st.vod === p);
     liveInfo = Object.assign({ vod: p, active, state: active ? st.state : 'stopped', dur: active ? st.dur : 0, behind: active ? st.behind || 0 : 0 }, active ? { title: st.title, url: st.url } : {});
@@ -2332,7 +2269,6 @@
     videoFps = 0; fetchVideoFps(filePath);
     video.pause();
     await liveAttach(filePath);
-    await seqAttach(filePath);
     setVideoSource(video, filePath, { live: !!(liveInfo && liveInfo.active), start: liveStartAt });
     liveStartAt = null;
     fileChip.textContent = isLivePath(filePath) ? filePath.split(/[/\\]/).slice(-2, -1)[0] : filePath.split(/[/\\]/).pop();
@@ -2355,7 +2291,6 @@
     let restored = false;
     if (proj) { restored = applyProject(proj); pendingSeek = proj.lastPosition || 0; } else { pendingSeek = 0; }
     projectLoaded = true;
-    window.api.log('разбор', 'открыт: ' + filePath + (proj ? ' — клипов ' + clips.length : ' — новый'));
     tagFilter.clear();
     dock.classList.add('collapsed'); // разбор открывается без журнала клипов — всё место под видео; журнал открывается «усами» внизу
     showMain();
@@ -2379,15 +2314,8 @@
 
   // перетаскивание видеофайла в окно
   let dragDepth = 0;
-  // только файлы с компьютера (перетаскивание роликов склейки и тегов внутри окна — не сюда)
-  const dragHasFiles = (e) => { try { return Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes('Files'); } catch (x) { return false; } };
-  window.addEventListener('dragenter', (e) => {
-    if (!dragHasFiles(e)) return;
-    e.preventDefault(); dragDepth++;
-    document.body.setAttribute('data-drop', t(seqInfo && mainView.classList.contains('active') ? 'seq_drop' : 'home_drop'));
-    document.body.classList.add('dragging');
-  });
-  window.addEventListener('dragleave', (e) => { if (!dragHasFiles(e)) return; e.preventDefault(); dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove('dragging'); });
+  window.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+  window.addEventListener('dragleave', (e) => { e.preventDefault(); dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove('dragging'); });
   window.addEventListener('dragover', (e) => e.preventDefault());
   const VIDEO_EXT = /\.(mp4|mov|mkv|avi|webm|m4v|ts|mts|mpg|mpeg|wmv)$/i;
   window.addEventListener('drop', (e) => {
@@ -2397,8 +2325,6 @@
     const paths = files.map((f) => window.api.pathForFile(f)).filter(Boolean);
     const mo = $('mergeOverlay');
     // окно склейки открыто или брошено несколько роликов — это ролики для склейки; один файл — видео матча
-    // открыта склейка — брошенные ролики добавляются в неё
-    if (seqInfo && mainView.classList.contains('active') && !mo.classList.contains('active') && !document.body.classList.contains('coach-mode')) { seqAddFiles(paths); return; }
     if (mo.classList.contains('active') || paths.filter((p) => VIDEO_EXT.test(p)).length > 1) { mergeAdd(paths); if (!mo.classList.contains('active')) openMerge(); return; }
     if (document.body.classList.contains('coach-mode')) return;
     if (paths[0]) openVideo(paths[0]);
@@ -2421,8 +2347,8 @@
       '<button type="button" data-m="down" title="' + esc(t('merge_down')) + '"' + (i === mergeFiles.length - 1 || mergeBusy ? ' disabled' : '') + '><svg class="ic" style="transform:rotate(135deg)"><use href="#i-arrow"/></svg></button>' +
       '<button type="button" data-m="del" title="' + esc(t('merge_del')) + '"' + (mergeBusy ? ' disabled' : '') + '><svg class="ic"><use href="#i-x"/></svg></button></div>').join('');
     $('mergeInfo').textContent = mergeFiles.length ? t('merge_count').replace('{n}', mergeFiles.length) : '';
-    $('mergeGoBtn').disabled = mergeBusy || mergeFiles.length < 1;
-    $('mergeGoLabel').textContent = t('merge_go');
+    $('mergeGoBtn').disabled = !mergeBusy && mergeFiles.length < 2;
+    $('mergeGoLabel').textContent = t(mergeBusy ? 'merge_stop' : 'merge_go');
     $('mergeAddBtn').disabled = mergeBusy;
   }
   function openMerge() { $('mergeErr').classList.remove('show'); if (!mergeBusy) $('mergeProg').classList.remove('show'); renderMerge(); $('mergeOverlay').classList.add('active'); }
@@ -2441,212 +2367,30 @@
   ['dragenter', 'dragover'].forEach((n) => $('mergeDrop').addEventListener(n, () => $('mergeDrop').classList.add('over')));
   ['dragleave', 'drop'].forEach((n) => $('mergeDrop').addEventListener(n, () => $('mergeDrop').classList.remove('over')));
   $('mergeGoBtn').addEventListener('click', async () => {
-    if (mergeBusy) return;
-    if (!mergeFiles.length) return;
+    if (mergeBusy) { window.api.mergeCancel(); return; }
+    if (mergeFiles.length < 2) return;
     mergeBusy = true; renderMerge();
     $('mergeErr').classList.remove('show');
-    $('mergeProg').classList.add('show'); $('mergeProgFill').style.width = '0%'; $('mergeProgText').textContent = t('seq_prep_first'); $('mergeProgMeta').textContent = '';
-    seqFirstProgress = (m) => { const p = (m.parts || []).find((x) => x.state === 'prep'); if (p) { $('mergeProgFill').style.width = clamp(p.percent, 0, 100) + '%'; $('mergeProgMeta').textContent = Math.round(p.percent) + '%'; } };
+    $('mergeProg').classList.add('show'); $('mergeProgFill').style.width = '0%'; $('mergeProgText').textContent = t('merge_prep'); $('mergeProgMeta').textContent = '';
+    window.api.onMergeProgress((m) => { $('mergeProgFill').style.width = clamp(m.percent, 0, 100) + '%'; $('mergeProgText').textContent = m.message || ''; $('mergeProgMeta').textContent = Math.round(m.percent) + '%'; });
     let r;
-    try { r = await window.api.seqCreate({ paths: mergeFiles.slice(), outDir: appSettings.downloadsFolder || '' }); }
+    try { r = await window.api.mergeVideos({ paths: mergeFiles.slice(), outDir: appSettings.downloadsFolder || '' }); }
     catch (err) { r = { ok: false, error: String((err && err.message) || err) }; }
-    seqFirstProgress = null;
     mergeBusy = false; renderMerge();
     if (!r || !r.ok) {
       $('mergeProg').classList.remove('show');
-      $('mergeErr').textContent = t('merge_fail') + ' ' + String((r && r.error) || '').slice(0, 400); $('mergeErr').classList.add('show');
+      if (!(r && r.cancelled)) { $('mergeErr').textContent = t('merge_fail') + ' ' + String((r && r.error) || '').slice(0, 400); $('mergeErr').classList.add('show'); }
       return;
     }
-    // ролики не склеиваются: открываются друг за другом как одно видео, остальные готовятся в фоне
+    // склеенный файл открывается как обычное видео; каждая часть — готовый клип в журнале
     $('mergeOverlay').classList.remove('active'); $('mergeProg').classList.remove('show');
     mergeFiles = [];
     if (document.body.classList.contains('coach-mode')) setMode('video');
-    await openVideo(r.seqPath);
-  });
-
-  // ---------- склейка, открытая как одно видео ----------
-  // seqInfo: { seqPath, parts:[{id,name,state,dur,percent,error}], tl:[{id,name,start,end}], duration }
-  let seqFirstProgress = null, seqDragId = null, seqMerging = false;
-  const isSeqPath = (p) => /(^|[\\/])sequence\.m3u8$/i.test(p || '');
-  async function seqAttach(p) {
-    seqInfo = null;
-    if (isSeqPath(p)) {
-      try { const r = await window.api.seqState({ seqPath: p }); if (r && r.ok) seqInfo = r; } catch (e) {}
-    }
-    seqRender();
-  }
-  const SEQ_TIME_KEYS = ['atTime', 'erasedAt', 'from', 'to', 'reqTo', 't'];
-  function seqShiftObj(o, d) {
-    if (!o || typeof o !== 'object') return;
-    SEQ_TIME_KEYS.forEach((k) => { if (typeof o[k] === 'number') o[k] += d; });
-    if (Array.isArray(o.samples)) o.samples.forEach((x) => { if (x && typeof x.t === 'number') x.t += d; });
-    if (o.rep && typeof o.rep === 'object') ['from', 'to'].forEach((k) => { if (typeof o.rep[k] === 'number') o.rep[k] += d; });
-  }
-  const SEQ_STORES = () => [strokesByKey, highlightsByKey, pausesByKey, graphicsByKey];
-  // Ролики поменялись местами или один убрали: всё, что привязано ко времени, едет вместе со своим роликом.
-  // Возвращает функцию пересчёта времени (null — время попало в убранный ролик).
-  function seqRemap(oldTl, newTl) {
-    const byId = new Map(newTl.map((x) => [x.id, x]));
-    const partOf = (tm) => oldTl.find((x) => tm >= x.start - 1e-6 && tm < x.end - 1e-6) || (oldTl.length && tm >= oldTl[oldTl.length - 1].end - 1e-6 ? oldTl[oldTl.length - 1] : null);
-    const delta = (tm) => { const p = partOf(tm); if (!p) return 0; const n = byId.get(p.id); return n ? n.start - p.start : null; };
-    const killed = [];
-    clips.slice().forEach((c) => {
-      const d = delta(c.start);
-      if (d === null) { killed.push(c); return; }
-      if (!d) return;
-      c.start += d; c.end += d;
-      SEQ_STORES().forEach((st) => (st[c.id] || []).forEach((o) => seqShiftObj(o, d)));
-    });
-    killed.forEach((c) => { clips = clips.filter((x) => x.id !== c.id); SEQ_STORES().forEach((st) => { delete st[c.id]; }); if (selectedClipId === c.id) { selectedClipId = null; clipEnd = null; } });
-    // рисунки и подсветки, ещё не привязанные к клипу (общий слой)
-    const clipIds = new Set(clips.map((c) => c.id).concat(killed.map((c) => c.id)));
-    SEQ_STORES().forEach((st) => Object.keys(st).forEach((k) => {
-      if (clipIds.has(k)) return;
-      st[k] = (st[k] || []).filter((o) => { const tm = typeof o.atTime === 'number' ? o.atTime : typeof o.from === 'number' ? o.from : typeof o.t === 'number' ? o.t : null; if (tm == null) return true; const d = delta(tm); if (d === null) return false; if (d) seqShiftObj(o, d); return true; });
-    }));
-    clips.sort((a, b) => a.start - b.start);
-    return { delta, killed };
-  }
-  // перезагрузить плеер с новым списком, сохранив место и воспроизведение
-  async function seqReload(at) {
-    const playing = !video.paused;
-    pendingSeek = Math.max(0, at || 0);
-    await setVideoSource(video, currentVideoPath, { start: pendingSeek });
-    if (playing) { const go = () => { video.removeEventListener('canplay', go); video.play().catch(() => {}); }; video.addEventListener('canplay', go); }
-  }
-  function seqCurId() {
-    if (!seqInfo) return null;
-    const tm = video.currentTime || 0;
-    const p = seqInfo.tl.find((x) => tm >= x.start - 1e-3 && tm < x.end - 1e-3) || seqInfo.tl[seqInfo.tl.length - 1];
-    return p ? p.id : null;
-  }
-  let seqLastCur = null;
-  function seqRender() {
-    const bar = $('seqBar');
-    const on = !!seqInfo && seqInfo.seqPath === currentVideoPath;
-    bar.classList.toggle('show', on);
-    if (!on) return;
-    const cur = seqCurId(); seqLastCur = cur;
-    const tlById = new Map(seqInfo.tl.map((x) => [x.id, x]));
-    let n = 0;
-    $('seqChips').innerHTML = seqInfo.parts.map((p) => {
-      const ready = p.state === 'ready' && tlById.has(p.id);
-      const num = ready ? ++n : '·';
-      const meta = ready ? fmt(p.dur) : p.state === 'prep' ? t('seq_prep').replace('{p}', Math.round(p.percent || 0)) : p.state === 'error' ? t('seq_err') : t('seq_wait');
-      return '<div class="seq-chip ' + (ready ? 'ready' : p.state) + (ready && p.id === cur ? ' cur' : '') + '" data-id="' + p.id + '"' + (ready ? ' draggable="true" title="' + esc(p.name + ' — ' + t('seq_drag_tip')) + '"' : ' title="' + esc(p.name + (p.error ? ' — ' + p.error : '')) + '"') + '>' +
-        '<span class="n">' + num + '</span><span class="nm">' + esc(p.name) + '</span><span class="d">' + esc(meta) + '</span>' +
-        (p.state === 'error' ? '<button type="button" class="x" data-a="retry" title="' + esc(t('seq_retry')) + '"><svg class="ic"><use href="#i-redo"/></svg></button>' : '') +
-        (p.state !== 'prep' ? '<button type="button" class="x" data-a="del" title="' + esc(t('seq_remove')) + '"><svg class="ic"><use href="#i-x"/></svg></button>' : '') +
-        (p.state === 'prep' ? '<i class="pg" style="width:' + clamp(p.percent || 0, 2, 100) + '%"></i>' : '') + '</div>';
-    }).join('');
-    const pending = seqInfo.parts.some((p) => p.state === 'wait' || p.state === 'prep');
-    $('seqMergeBtn').disabled = seqMerging;
-    $('seqMergeLabel').textContent = seqMerging ? t('seq_merging').replace('{p}', Math.round(seqInfo.merging || 0)) : t('seq_merge');
-    $('seqMergeBtn').title = pending ? t('seq_merge_wait') : t('seq_merge_tip');
-    $('seqAddBtn').title = t('seq_add_tip');
-  }
-  // подсветка текущего ролика при воспроизведении
-  video.addEventListener('timeupdate', () => { if (seqInfo && seqCurId() !== seqLastCur) seqRender(); });
-  async function seqApply(r, keepAt) {
-    // применить новое состояние склейки (новый порядок, убранный или добавленный ролик)
-    if (!r || !r.ok) { if (r && r.error) toast(t('seq_fail').replace('{e}', r.error), true); return; }
-    const oldTl = seqInfo ? seqInfo.tl : [];
-    const changed = JSON.stringify(oldTl.map((x) => [x.id, x.start])) !== JSON.stringify(r.tl.map((x) => [x.id, x.start]));
-    let at = video.currentTime || 0;
-    if (changed && oldTl.length) {
-      const m = seqRemap(oldTl, r.tl);
-      const d = m.delta(at); at = d === null ? 0 : at + d;
-      inPoint = null; outPoint = null; updateInOutButtons();
-      renderClips(); redraw(); flushProjectSave();
-    }
-    const grew = r.tl.length !== oldTl.length || (r.duration || 0) > (seqInfo ? seqInfo.duration || 0 : 0) + 0.01;
-    seqInfo = r;
-    seqRender();
-    if (changed || grew) await seqReload(keepAt != null ? keepAt : at);
-  }
-  if (window.api.onSeqStatus) window.api.onSeqStatus((m) => {
-    if (seqFirstProgress) seqFirstProgress(m);
-    if (!seqInfo || m.seqPath !== seqInfo.seqPath) return;
-    if (m.merging != null) { seqInfo.merging = m.merging; seqRender(); return; }
-    const before = seqInfo.tl.length;
-    const readyNow = m.tl.filter((x) => !seqInfo.tl.some((y) => y.id === x.id));
-    // новый ролик готов — он добавляется в конец, остальное время не меняется
-    if (readyNow.length || m.tl.length !== before) { seqApply(Object.assign({ ok: true }, m), video.currentTime || 0); readyNow.forEach((x) => toast(t('seq_ready').replace('{n}', x.name))); }
-    else { seqInfo = Object.assign(seqInfo, { parts: m.parts }); seqRender(); }
-  });
-  async function seqAddFiles(paths) {
-    const vids = (paths || []).filter((p) => VIDEO_EXT.test(p));
-    if (!vids.length || !seqInfo) return;
-    const r = await window.api.seqAdd({ seqPath: seqInfo.seqPath, paths: vids });
-    if (r && r.ok) { seqInfo.parts = r.parts; seqRender(); toast(t('seq_added').replace('{n}', vids.length)); }
-    else toast(t('seq_fail').replace('{e}', (r && r.error) || ''), true);
-  }
-  $('seqAddBtn').addEventListener('click', async (e) => { e.currentTarget.blur(); seqAddFiles(await window.api.selectVideos()); });
-  $('seqChips').addEventListener('click', async (e) => {
-    const chip = e.target.closest('.seq-chip'); if (!chip || !seqInfo) return;
-    const id = +chip.dataset.id, part = seqInfo.parts.find((p) => p.id === id);
-    const btn = e.target.closest('button[data-a]');
-    if (btn && btn.dataset.a === 'retry') { const r = await window.api.seqRetry({ seqPath: seqInfo.seqPath, id }); if (r && r.ok) { seqInfo.parts = r.parts; seqRender(); } return; }
-    if (btn && btn.dataset.a === 'del') {
-      if (Object.keys(recordingTags).length) { toast(t('seq_busy_rec'), true); return; }
-      const tl = seqInfo.tl.find((x) => x.id === id);
-      const inside = tl ? clips.filter((c) => c.start >= tl.start - 1e-6 && c.start < tl.end - 1e-6).length : 0;
-      const q = (inside ? t('seq_remove_q').replace('{c}', inside) : t('seq_remove_q0')).replace('{n}', part ? part.name : '');
-      if (!confirm(q)) return;
-      seqApply(await window.api.seqRemove({ seqPath: seqInfo.seqPath, id }));
-      return;
-    }
-    const tl = seqInfo.tl.find((x) => x.id === id);
-    if (tl) { video.currentTime = tl.start + 0.001; uiTick(); seqRender(); }
-  });
-  // перетаскивание роликов: меняем порядок
-  $('seqChips').addEventListener('dragstart', (e) => {
-    const chip = e.target.closest('.seq-chip.ready'); if (!chip) { e.preventDefault(); return; }
-    seqDragId = +chip.dataset.id; chip.classList.add('drag');
-    try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-seq', String(seqDragId)); } catch (x) {}
-  });
-  const seqClearMarks = () => $('seqChips').querySelectorAll('.drop-before,.drop-after,.drag').forEach((el) => el.classList.remove('drop-before', 'drop-after', 'drag'));
-  $('seqChips').addEventListener('dragover', (e) => {
-    if (seqDragId == null) return;
-    e.preventDefault(); e.stopPropagation();
-    const chip = e.target.closest('.seq-chip.ready');
-    $('seqChips').querySelectorAll('.drop-before,.drop-after').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
-    if (!chip || +chip.dataset.id === seqDragId) return;
-    const r = chip.getBoundingClientRect();
-    chip.classList.add(e.clientX < r.left + r.width / 2 ? 'drop-before' : 'drop-after');
-  });
-  $('seqChips').addEventListener('dragend', () => { seqDragId = null; seqClearMarks(); });
-  $('seqChips').addEventListener('drop', async (e) => {
-    if (seqDragId == null || !seqInfo) return;
-    e.preventDefault(); e.stopPropagation();
-    const chip = e.target.closest('.seq-chip.ready');
-    const from = seqDragId; seqDragId = null;
-    const before = chip && chip.classList.contains('drop-before');
-    seqClearMarks();
-    if (!chip || +chip.dataset.id === from) return;
-    if (Object.keys(recordingTags).length) { toast(t('seq_busy_rec'), true); return; }
-    const order = seqInfo.tl.map((x) => x.id).filter((id) => id !== from);
-    let k = order.indexOf(+chip.dataset.id); if (!before) k++;
-    order.splice(k, 0, from);
-    seqApply(await window.api.seqOrder({ seqPath: seqInfo.seqPath, order }));
-  });
-  $('seqMergeBtn').addEventListener('click', async (e) => {
-    e.currentTarget.blur();
-    if (!seqInfo || seqMerging) return;
-    if (seqInfo.parts.some((p) => p.state === 'wait' || p.state === 'prep')) { toast(t('seq_merge_wait'), true); return; }
-    if (!confirm(t('seq_merge_q').replace('{n}', seqInfo.tl.length))) return;
-    if (Object.keys(recordingTags).length) { toast(t('seq_busy_rec'), true); return; }
-    flushProjectSave(true);
-    seqMerging = true; seqInfo.merging = 0; seqRender();
-    let r;
-    try { r = await window.api.seqMerge({ seqPath: seqInfo.seqPath, projectsFolder: appSettings.projectsFolder }); } catch (err) { r = { ok: false, error: String(err && err.message || err) }; }
-    seqMerging = false;
-    if (!r || !r.ok) { seqRender(); toast(t('seq_fail').replace('{e}', (r && r.error) || ''), true); return; }
-    const at = video.currentTime || 0;
-    projectLoaded = false; // разбор уже перенесён на файл — не сохранять его снова под склейкой
-    await openVideo(r.file);
-    pendingSeek = at;
-    toast(t('seq_merged').replace('{f}', r.file.split(/[/\\]/).pop()));
+    await openVideo(r.path);
+    if (!clips.length) (r.parts || []).forEach((p) => addClip(p.name, p.start, p.end, null));
+    renderClips(); flushProjectSave();
+    dock.classList.remove('collapsed'); fitVideoBox(); // здесь журнал нужен сразу: в нём части склейки
+    toast(t('merge_done').replace('{n}', (r.parts || []).length));
   });
 
   // ---------- saved sessions (home screen) ----------
@@ -2726,7 +2470,6 @@
     if (!currentVideoPath) return;
     const err = video.error;
     videoErrorText.textContent = err ? (ERROR_MESSAGES[err.code] || ('Не удалось воспроизвести файл (код ' + err.code + ').')) : 'Не удалось воспроизвести файл.';
-    window.api.log('видео', 'не воспроизводится: ' + currentVideoPath + ' код ' + (err ? err.code + ' ' + (err.message || '') : '?'));
     videoError.classList.add('active');
   });
   video.addEventListener('loadedmetadata', () => {
@@ -3117,7 +2860,6 @@
   });
 
   function deleteClip(id) {
-    const dc = clips.find((x) => x.id === id); if (dc) window.api.log('клипы', 'удалён: ' + dc.name + ' ' + fmt(dc.start) + '–' + fmt(dc.end));
     clips = clips.filter((x) => x.id !== id);
     delete strokesByKey[id]; delete highlightsByKey[id]; delete pausesByKey[id]; delete graphicsByKey[id];
     if (selectedClipId === id) { selectedClipId = null; clipEnd = null; }
@@ -3353,7 +3095,6 @@
   // клип только что снят (тегом или клавишами начала/конца)
   function clipRecorded(c) {
     if (!c) return;
-    window.api.log('клипы', 'записан: ' + c.name + ' ' + fmt(c.start) + '–' + fmt(c.end) + (c.tag ? ' тег ' + c.tag : ''));
     renderSideClip(true);
     if (document.body.classList.contains('relax')) showClipPop(c);
   }
@@ -5956,7 +5697,6 @@
     const rx = appSettings.workMode === 'relax';
     document.body.classList.toggle('relax', rx);
     if (!rx) document.body.classList.remove('rx-top', 'rx-left', 'rx-right', 'rx-bottom');
-    placeLiveStrip();
     $('relaxBtn').classList.toggle('on', rx); $('relaxBtn').title = t(rx ? 'relax_off_tip' : 'relax_on_tip');
     if (!rx) hideClipPop(false);
     fitVideoBox();
@@ -5979,13 +5719,6 @@
     B.toggle('rx-bottom', y > r.bottom - 120 || dock.classList.contains('collapsed') === false);
   }
   document.addEventListener('mousemove', (e) => relaxZones(e.clientX, e.clientY, e.buttons));
-  // Полоса трансляции в Relax: теги всплывают поверх верха видео, поэтому полоса стоит ниже них —
-  // кнопки «Завершить»/«Продолжить» всегда можно нажать, и наведение на них не вызывает теги.
-  function placeLiveStrip() {
-    const top = document.body.classList.contains('relax') ? (Math.max(40, tagBar.offsetHeight) + 12) + 'px' : '';
-    ['liveStrip', 'seqBar'].forEach((id) => { const el = $(id); if (el) el.style.top = top; });
-  }
-  try { new ResizeObserver(placeLiveStrip).observe(tagBar); } catch (e) {}
   document.addEventListener('mouseleave', () => { if (document.body.classList.contains('relax')) document.body.classList.remove('rx-top', 'rx-left', 'rx-right', 'rx-bottom'); });
   // окно подписи клипа
   let popClip = null, popResume = false;
@@ -6030,27 +5763,6 @@
     await window.api.gpuSafeSet(on); await updateGpuButtons();
     if (confirm(t('gpu_restart_q'))) window.api.appRelaunch();
   }
-  // журнал для отправки: к записям добавляется сводка текущего разбора (клипы, эффекты, рисунки)
-  function logContext() {
-    if (!currentVideoPath) return 'Разбор не открыт.';
-    const L = ['Видео: ' + currentVideoPath, 'Длительность: ' + fmt(duration || 0) + ', позиция: ' + fmt(video.currentTime || 0) + ', клипов: ' + clips.length + (seqInfo ? ', склейка из ' + seqInfo.parts.length + ' роликов' : '')];
-    clips.slice(0, 300).forEach((c, i) => {
-      const fx = [];
-      if (c.speed && c.speed < 1) fx.push('скорость ' + c.speed); if (c.mute) fx.push('без звука');
-      if (c.slows && c.slows.length) fx.push('замедлений ' + c.slows.length); if (c.freezes && c.freezes.length) fx.push('пауз ' + c.freezes.length);
-      const n = (o) => (o[c.id] || []).length;
-      if (n(strokesByKey)) fx.push('рисунков ' + n(strokesByKey)); if (n(highlightsByKey)) fx.push('подсветок ' + n(highlightsByKey));
-      if (n(pausesByKey)) fx.push('пауз ред. ' + n(pausesByKey)); if (n(graphicsByKey)) fx.push('графики ' + n(graphicsByKey));
-      L.push((i + 1) + '. ' + c.name + '  ' + fmt(c.start) + '–' + fmt(c.end) + (c.tag ? '  [' + c.tag + ']' : '') + (fx.length ? '  — ' + fx.join(', ') : ''));
-    });
-    return L.join('\n');
-  }
-  $('logSaveBtn').addEventListener('click', async () => {
-    let ctx = ''; try { ctx = logContext(); } catch (e) { ctx = 'не удалось собрать сводку: ' + e.message; }
-    const r = await window.api.logsSave(ctx);
-    if (r && r.ok) toast(t('log_saved').replace('{f}', r.path.split(/[/\\]/).pop())); else toast(t('log_fail') + ' ' + ((r && r.error) || ''), true);
-  });
-  $('logOpenBtn').addEventListener('click', () => window.api.logsOpen());
   $('gpuOnBtn').addEventListener('click', () => setGpuSafe(false));
   $('gpuOffBtn').addEventListener('click', () => setGpuSafe(true));
   updateGpuButtons();

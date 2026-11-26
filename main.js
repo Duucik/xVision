@@ -7,7 +7,6 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 const downloader = require('./downloader');
 const live = require('./live');
-const seqLib = require('./sequence');
 const vkdvr = require('./vkdvr');
 const http = require('http');
 const freezeLib = require('./freeze');
@@ -39,32 +38,8 @@ const startLogFile = (() => {
 })();
 function startLog(...a) {
   if (!startLogFile) return;
-  try { xlog('запуск', ...a); } catch (e) {}
   try { fs.appendFileSync(startLogFile, new Date().toISOString() + ' ' + a.map((x) => (x instanceof Error ? x.message : typeof x === 'object' ? JSON.stringify(x) : String(x))).join(' ') + '\n'); } catch (e) {}
 }
-// ---------- журнал работы ----------
-// Всё важное (открыли видео, выгрузка, склейка, трансляция, ошибки ffmpeg и окна) пишется по дням в папку logs
-// в данных программы; хранится 14 дней. «Настройки → Журнал работы → Сохранить для отправки» собирает
-// журнал в один файл, который можно переслать, чтобы быстро найти причину ошибки.
-const logDir = () => path.join(app.getPath('userData'), 'logs');
-const pad2m = (n) => String(n).padStart(2, '0');
-function logDay(d) { return d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate()); }
-let logReady = false;
-function xlog(area, ...a) {
-  try {
-    if (!logReady) {
-      fs.mkdirSync(logDir(), { recursive: true }); logReady = true;
-      const old = Date.now() - 14 * 86400000;
-      fs.readdirSync(logDir()).forEach((n) => { try { const f = path.join(logDir(), n); if (fs.statSync(f).mtimeMs < old) fs.unlinkSync(f); } catch (e) {} });
-    }
-    const d = new Date();
-    const text = a.map((x) => (x instanceof Error ? (x.stack || x.message) : x && typeof x === 'object' ? JSON.stringify(x) : String(x))).join(' ');
-    fs.appendFileSync(path.join(logDir(), 'xvision-' + logDay(d) + '.log'),
-      pad2m(d.getHours()) + ':' + pad2m(d.getMinutes()) + ':' + pad2m(d.getSeconds()) + '.' + String(d.getMilliseconds()).padStart(3, '0') + ' [' + area + '] ' + text.slice(0, 20000) + '\n');
-  } catch (e) {}
-}
-process.on('uncaughtException', (e) => { xlog('сбой', 'главный процесс:', e); });
-process.on('unhandledRejection', (e) => { xlog('сбой', 'необработанная ошибка:', e); });
 const gpuSafeFile = () => path.join(app.getPath('userData'), 'gpu-safe.json');
 const GPU_SAFE_ARG = process.argv.some((a) => a === '--safe-gpu' || a === '--disable-gpu');
 let gpuSafe = GPU_SAFE_ARG;
@@ -613,8 +588,7 @@ ipcMain.handle('list-projects', async (event, { projectsFolder }) => {
         result.push({
           file,
           videoPath: p.videoPath,
-          videoName: /(vod|sequence)\.m3u8$/i.test(p.videoPath) ? path.basename(path.dirname(p.videoPath)) : path.basename(p.videoPath),
-          seq: /sequence\.m3u8$/i.test(p.videoPath),
+          videoName: /vod\.m3u8$/i.test(p.videoPath) ? path.basename(path.dirname(p.videoPath)) : path.basename(p.videoPath),
           live: /vod\.m3u8$/i.test(p.videoPath),
           exists: fs.existsSync(p.videoPath),
           updatedAt: p.updatedAt || fs.statSync(file).mtimeMs,
@@ -831,10 +805,7 @@ function vkOndemandFormat(info, quality) {
   const fs0 = (info.formats || []).filter((f) => /ondemand/.test(f.format_id || '') && /m3u8/.test(f.protocol || '') && f.url);
   return fs0.filter((f) => (f.height || 0) <= maxH).sort((a, b) => (b.height || 0) - (a.height || 0))[0] || fs0.sort((a, b) => (a.height || 0) - (b.height || 0))[0] || null;
 }
-let liveLastLogged = '';
-function liveSend(msg) {
-  try { const k = (msg && (msg.state || msg.phase || '')) + '|' + (msg && (msg.error || msg.message || '')); if (k !== liveLastLogged && !(msg && msg.phase === 'finalize' && msg.percent > 0 && msg.percent < 100)) { liveLastLogged = k; xlog('трансляция', JSON.stringify(msg).slice(0, 600)); } } catch (e) {}
-  BrowserWindow.getAllWindows().forEach((w) => { try { w.webContents.send('live-status', msg); } catch (e) {} }); }
+function liveSend(msg) { BrowserWindow.getAllWindows().forEach((w) => { try { w.webContents.send('live-status', msg); } catch (e) {} }); }
 function liveState() {
   if (!liveSess) return { active: false };
   return Object.assign({ active: !['stopped', 'error'].includes(liveSess.state) }, liveSess.status(), liveMeta || {});
@@ -984,22 +955,7 @@ function hlsEnsure() {
       const m = /^\/h\/([0-9a-f]{16})\/([\w.\-]+)$/.exec((req.url || '').split('?')[0]);
       const dir = m && hlsRoots.get(m[1]);
       const head = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
-      if (!dir || !/\.(m3u8|ts|mp4)$/i.test(m[2])) { res.writeHead(404, head); return res.end(); }
-      if (/\.mp4$/i.test(m[2])) {
-        // части склейки: плеер читает их кусками (Range)
-        const f = path.join(dir, m[2]);
-        fs.stat(f, (err, st) => {
-          if (err) { res.writeHead(404, head); return res.end(); }
-          const rg = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
-          let a = 0, b = st.size - 1;
-          if (rg) { if (rg[1] !== '') a = +rg[1]; if (rg[2] !== '') b = Math.min(+rg[2], st.size - 1); if (rg[1] === '' && rg[2] !== '') { a = Math.max(0, st.size - +rg[2]); b = st.size - 1; } }
-          if (a > b || a >= st.size) { res.writeHead(416, Object.assign(head, { 'Content-Range': 'bytes */' + st.size })); return res.end(); }
-          res.writeHead(rg ? 206 : 200, Object.assign(head, { 'Content-Type': 'video/mp4', 'Accept-Ranges': 'bytes', 'Content-Length': b - a + 1 }, rg ? { 'Content-Range': 'bytes ' + a + '-' + b + '/' + st.size } : {}));
-          if (req.method === 'HEAD') return res.end();
-          fs.createReadStream(f, { start: a, end: b }).on('error', () => res.destroy()).pipe(res);
-        });
-        return;
-      }
+      if (!dir || !/\.(m3u8|ts)$/i.test(m[2])) { res.writeHead(404, head); return res.end(); }
       fs.readFile(path.join(dir, m[2]), (err, buf) => {
         if (err) { res.writeHead(404, head); return res.end(); }
         res.writeHead(200, Object.assign(head, { 'Content-Type': /m3u8$/i.test(m[2]) ? 'application/vnd.apple.mpegurl' : 'video/mp2t', 'Content-Length': buf.length }));
@@ -1019,203 +975,6 @@ ipcMain.handle('hls-url', async (event, { path: p, live: wantLive }) => {
   const recording = liveSess && liveSess.dir === dir && !['stopped', 'error', 'ended'].includes(liveSess.state);
   const name = wantLive && recording ? 'index.m3u8' : path.basename(p);
   return { url: 'http://127.0.0.1:' + port + '/h/' + token + '/' + encodeURIComponent(name), live: !!(wantLive && recording) };
-});
-
-// ---------- склейка роликов: несколько видео как одно ----------
-// Ролики не склеиваются сразу: каждый готовится один раз (sequence.js), плеер играет их подряд, их можно
-// менять местами, добавлять и убирать. В один файл они соединяются кнопкой «Склеить в один файл».
-const seqQueue = []; // { dir, id }
-let seqBusy = false;
-const seqProgress = new Map(); // dir|id -> percent
-function seqSend(dir, extra) {
-  let st = null; try { st = seqStateOf(dir); } catch (e) { return; }
-  BrowserWindow.getAllWindows().forEach((w) => { try { w.webContents.send('seq-status', Object.assign(st, extra || {})); } catch (e) {} });
-}
-function seqStateOf(dir) {
-  const seq = seqLib.readSeq(dir);
-  const tl = seqLib.timeline(seq);
-  return {
-    seqPath: path.join(dir, seqLib.SEQ_M3U8), dir, title: seq.title, merged: seq.merged || null,
-    parts: seq.order.map((id) => seq.parts.find((p) => p.id === id)).filter(Boolean).map((p) => ({ id: p.id, name: p.name, state: p.state, dur: p.dur || 0, error: p.error || '', percent: seqProgress.get(dir + '|' + p.id) || 0, copy: !!p.copy })),
-    tl, duration: tl.length ? tl[tl.length - 1].end : 0,
-  };
-}
-function seqEnqueue(dir, ids) { ids.forEach((id) => { if (!seqQueue.some((q) => q.dir === dir && q.id === id)) seqQueue.push({ dir, id }); }); seqPump(); }
-async function seqPump() {
-  if (seqBusy) return;
-  const job = seqQueue.shift(); if (!job) return;
-  seqBusy = true;
-  try { await seqPrepare(job.dir, job.id); } catch (e) { xlog('склейка', 'ошибка подготовки:', e.message || String(e)); }
-  seqBusy = false;
-  setImmediate(seqPump);
-}
-async function seqPrepare(dir, id) {
-  let seq = seqLib.readSeq(dir);
-  const part = seq.parts.find((p) => p.id === id);
-  if (!part || part.state === 'ready') return;
-  const setPart = (o) => { seq = seqLib.readSeq(dir); const p = seq.parts.find((x) => x.id === id); if (!p) return false; Object.assign(p, o); seqLib.writeSeq(dir, seq); return true; };
-  if (!setPart({ state: 'prep', error: '' })) return;
-  seqSend(dir);
-  const info = await seqLib.probe(ffmpegPath, part.src);
-  if (!info || !info.w || !info.h) { setPart({ state: 'error', error: 'не удалось прочитать видео' }); xlog('склейка', 'не читается:', part.src); seqSend(dir); return; }
-  if (!seq.fmt) { seq.fmt = seqLib.targetFormat(info); seqLib.writeSeq(dir, seq); }
-  const fmt = seq.fmt;
-  let copy = seqLib.canCopyVideo(info, fmt);
-  const total = info.duration || 1;
-  const onTime = (sec) => { seqProgress.set(dir + '|' + id, Math.min(99, Math.round(sec / total * 100))); seqSend(dir); };
-  xlog('склейка', 'готовлю ролик', id, part.src, JSON.stringify(info), copy ? 'без перекодирования' : 'с перекодированием');
-  const run = async (enc, cp) => { await runFfmpeg(seqLib.prepArgs(part.src, info, fmt, dir, id, enc, cp), onTime); };
-  try {
-    if (copy) {
-      try { await run(SOFT_ENCODER, true); } catch (e) { copy = false; }
-    }
-    if (!copy) {
-      const enc = await detectEncoder();
-      try { await run(enc, false); } catch (e) { if (!enc.hw) throw e; await run(SOFT_ENCODER, false); }
-    }
-    const r = seqLib.readPart(dir, id);
-    seqProgress.delete(dir + '|' + id);
-    setPart({ state: 'ready', dur: r.dur, copy });
-    seqLib.compose(dir, seqLib.readSeq(dir));
-    xlog('склейка', 'ролик готов', id, r.dur.toFixed(2) + ' с');
-  } catch (e) {
-    seqProgress.delete(dir + '|' + id);
-    setPart({ state: 'error', error: String(e.message || e).split('\n')[0].slice(0, 200) });
-  }
-  seqSend(dir);
-}
-function seqDirOf(seqPath) {
-  if (!seqLib.isSeqPath(seqPath)) throw new Error('это не склейка');
-  const dir = path.dirname(seqPath);
-  if (!fs.existsSync(path.join(dir, seqLib.SEQ_JSON))) throw new Error('папка склейки не найдена');
-  return dir;
-}
-function seqAddParts(dir, paths) {
-  const seq = seqLib.readSeq(dir);
-  const ids = [];
-  (paths || []).filter(Boolean).slice(0, 60).forEach((src) => {
-    const id = seq.nextId++;
-    seq.parts.push({ id, src, name: path.basename(src).replace(/\.[a-z0-9]+$/i, ''), state: 'wait' });
-    seq.order.push(id); ids.push(id);
-  });
-  seqLib.writeSeq(dir, seq);
-  return ids;
-}
-ipcMain.handle('seq-create', async (event, { paths, outDir }) => {
-  if (!licOk()) return LIC_DENIED;
-  try {
-    const list = (paths || []).filter(Boolean);
-    if (!list.length) return { ok: false, error: 'Нет роликов.' };
-    const d0 = new Date(), p2 = (n) => String(n).padStart(2, '0');
-    const title = 'Склейка ' + d0.getFullYear() + '-' + p2(d0.getMonth() + 1) + '-' + p2(d0.getDate()) + ' ' + p2(d0.getHours()) + '-' + p2(d0.getMinutes());
-    const root = path.join(outDir || defaultDownloadsFolder(), 'Склейки');
-    fs.mkdirSync(root, { recursive: true });
-    let dir = path.join(root, title), k = 2;
-    while (fs.existsSync(dir)) dir = path.join(root, title + ' (' + (k++) + ')');
-    fs.mkdirSync(dir, { recursive: true });
-    seqLib.writeSeq(dir, { v: 1, title: path.basename(dir), created: d0.toISOString(), parts: [], order: [], nextId: 1, fmt: null });
-    const ids = seqAddParts(dir, list);
-    xlog('склейка', 'новая:', dir, 'роликов', ids.length);
-    seqEnqueue(dir, ids);
-    // ждём первый готовый ролик — тогда окно может открыть склейку
-    for (;;) {
-      const st = seqStateOf(dir);
-      if (st.tl.length) return Object.assign({ ok: true }, st);
-      if (st.parts.every((p) => p.state === 'error')) return { ok: false, error: 'Не удалось подготовить ни один ролик: ' + st.parts.map((p) => p.name + ' — ' + p.error).join('; ') };
-      await new Promise((r) => setTimeout(r, 300));
-    }
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-ipcMain.handle('seq-state', async (event, { seqPath }) => {
-  try {
-    const dir = seqDirOf(seqPath);
-    // после перезапуска программы: недоготовленные ролики — снова в очередь
-    const seq = seqLib.readSeq(dir);
-    const again = seq.parts.filter((p) => (p.state === 'wait' || p.state === 'prep') && !seqQueue.some((q) => q.dir === dir && q.id === p.id) && !(seqBusy && seqProgress.has(dir + '|' + p.id))).map((p) => p.id);
-    if (again.length) seqEnqueue(dir, again);
-    return Object.assign({ ok: true }, seqStateOf(dir));
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-ipcMain.handle('seq-add', async (event, { seqPath, paths }) => {
-  if (!licOk()) return LIC_DENIED;
-  try {
-    const dir = seqDirOf(seqPath);
-    const ids = seqAddParts(dir, paths);
-    xlog('склейка', 'добавлено роликов:', ids.length, (paths || []).join(' | '));
-    seqEnqueue(dir, ids);
-    return Object.assign({ ok: true, added: ids }, seqStateOf(dir));
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-// новый порядок: меняются местами только готовые ролики, готовящиеся остаются в конце
-ipcMain.handle('seq-order', async (event, { seqPath, order }) => {
-  try {
-    const dir = seqDirOf(seqPath);
-    const seq = seqLib.readSeq(dir);
-    const ready = new Set(seq.parts.filter((p) => p.state === 'ready').map((p) => p.id));
-    const want = (order || []).map(Number).filter((id) => ready.has(id));
-    const rest = seq.order.filter((id) => ready.has(id) && !want.includes(id));
-    seq.order = want.concat(rest, seq.order.filter((id) => !ready.has(id)));
-    seqLib.writeSeq(dir, seq);
-    seqLib.compose(dir, seq);
-    xlog('склейка', 'новый порядок:', seq.order.join(','));
-    return Object.assign({ ok: true }, seqStateOf(dir));
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-ipcMain.handle('seq-remove', async (event, { seqPath, id }) => {
-  try {
-    const dir = seqDirOf(seqPath);
-    const seq = seqLib.readSeq(dir);
-    const part = seq.parts.find((p) => p.id === id);
-    if (!part) return Object.assign({ ok: true }, seqStateOf(dir));
-    if (part.state === 'prep' && seqBusy) return { ok: false, error: 'Этот ролик сейчас готовится — уберите его, когда он будет готов.' };
-    for (let i = seqQueue.length - 1; i >= 0; i--) if (seqQueue[i].dir === dir && seqQueue[i].id === id) seqQueue.splice(i, 1);
-    seq.parts = seq.parts.filter((p) => p.id !== id); seq.order = seq.order.filter((x) => x !== id);
-    if (!seqLib.timeline(seq).length && !seq.parts.length) return { ok: false, error: 'Нельзя убрать последний ролик.' };
-    seqLib.writeSeq(dir, seq);
-    seqLib.compose(dir, seq);
-    ['.mp4', '.m3u8'].forEach((x) => { try { fs.unlinkSync(path.join(dir, 'p' + id + x)); } catch (e) {} });
-    xlog('склейка', 'убран ролик', id, part.name);
-    return Object.assign({ ok: true }, seqStateOf(dir));
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-ipcMain.handle('seq-retry', async (event, { seqPath, id }) => {
-  try { const dir = seqDirOf(seqPath); seqEnqueue(dir, [id]); return Object.assign({ ok: true }, seqStateOf(dir)); }
-  catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-// соединить готовые ролики в один MP4 (без перекодирования) и перенести на него разбор
-ipcMain.handle('seq-merge', async (event, { seqPath, projectsFolder }) => {
-  if (!licOk()) return LIC_DENIED;
-  try {
-    const dir = seqDirOf(seqPath);
-    const seq = seqLib.readSeq(dir);
-    if (seq.parts.some((p) => p.state === 'wait' || p.state === 'prep')) return { ok: false, error: 'Ещё не все ролики готовы.' };
-    const tl = seqLib.compose(dir, seq);
-    if (!tl.length) return { ok: false, error: 'Нет готовых роликов.' };
-    const list = path.join(dir, 'merge.txt');
-    fs.writeFileSync(list, tl.map((t) => "file 'p" + t.id + ".mp4'").join('\n') + '\n', 'utf8');
-    const out = uniquePath(path.dirname(dir), sanitizeFileName(seq.title), '.mp4', new Set());
-    const total = tl[tl.length - 1].end;
-    const send = (pct) => { try { event.sender.send('seq-status', Object.assign(seqStateOf(dir), { merging: pct })); } catch (e) {} };
-    xlog('склейка', 'соединяю в файл:', out, 'частей', tl.length, total.toFixed(2) + ' с');
-    await runFfmpeg(['-y', '-nostdin', '-f', 'concat', '-safe', '0', '-i', list, '-map', '0:v:0', '-map', '0:a:0?', '-c', 'copy', ...TRACK_TS, '-movflags', '+faststart', out], (sec) => send(Math.min(99, Math.round(sec / total * 100))));
-    let got = 0; try { got = ((await probeMedia(out)) || {}).duration || 0; } catch (e) {}
-    xlog('склейка', 'файл готов:', got.toFixed(2) + ' с из ' + total.toFixed(2));
-    if (got > 0 && Math.abs(got - total) > Math.max(1, total * 0.03)) {
-      // запасной путь: соединить с перекодированием
-      await runFfmpeg(['-y', '-nostdin', '-f', 'concat', '-safe', '0', '-i', list, '-map', '0:v:0', '-map', '0:a:0?', '-pix_fmt', 'yuv420p', ...SOFT_ENCODER.args, '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out], (sec) => send(Math.min(99, Math.round(sec / total * 100))));
-    }
-    // разбор переезжает на готовый файл (время клипов не меняется — порядок тот же)
-    const folder = projectsFolder || defaultProjectsFolder();
-    const oldF = projectFileFor(folder, seqPath);
-    if (fs.existsSync(oldF)) {
-      const p = JSON.parse(fs.readFileSync(oldF, 'utf8'));
-      writeProjectFile(folder, out, Object.assign(p, { videoPath: out, seqDir: dir }));
-      fs.unlinkSync(oldF);
-    }
-    // части больше не нужны (исходные ролики не трогаем)
-    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
-    return { ok: true, file: out };
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
 });
 
 // ---------- ИИ: подсветка игроков ----------
@@ -1355,7 +1114,7 @@ ipcMain.handle('ai-detect', async (event, { videoPath, t, srcW, srcH }) => {
   try {
     const prep = await aiPrepare(event);
     if (!prep || !prep.ok) return prep || { ok: false, error: 'Нейросеть не запустилась' };
-    const r = await aiCall('detect', { ffmpegPath, sourcePath: seqLib.ffSource(videoPath), t, srcW, srcH });
+    const r = await aiCall('detect', { ffmpegPath, sourcePath: videoPath, t, srcW, srcH });
     if (!r.ok) return { ok: false, error: r.error };
     const res = r.result || [];
     return Array.isArray(res) ? { ok: true, boxes: res, info: {} } : { ok: true, boxes: res.boxes || [], info: res.info || {} };
@@ -1368,7 +1127,7 @@ ipcMain.handle('ai-track', async (event, { videoPath, srcW, srcH, t0, players, f
   try {
     const prep = await aiPrepare(event);
     if (!prep || !prep.ok) return prep || { ok: false, error: 'Нейросеть не запустилась' };
-    const r = await aiCall('track', { ffmpegPath, sourcePath: seqLib.ffSource(videoPath), srcW, srcH, t0, players, from, to, fps: 8, trackW: trackW > 0 ? trackW : 0 },
+    const r = await aiCall('track', { ffmpegPath, sourcePath: videoPath, srcW, srcH, t0, players, from, to, fps: 8, trackW: trackW > 0 ? trackW : 0 },
       (ev, p) => { if (ev === 'track') aiSend(event, { type: 'track', percent: p }); });
     if (job.cancelled || (!r.ok && /cancelled/.test(String(r.error)))) return { ok: false, cancelled: true };
     if (!r.ok) return { ok: false, error: r.error };
@@ -1410,7 +1169,7 @@ ipcMain.handle('pos-cut', async (event, a) => {
   if (posBusy) return { ok: false, error: 'Подождите: предыдущее выделение ещё идёт.' };
   posBusy = true;
   try {
-    const base = { ffmpegPath, sourcePath: seqLib.ffSource(a.videoPath), t: a.t, fps: a.fps || 0, srcW: a.srcW, srcH: a.srcH };
+    const base = { ffmpegPath, sourcePath: a.videoPath, t: a.t, fps: a.fps || 0, srcW: a.srcW, srcH: a.srcH };
     if (Array.isArray(a.polygon) && a.polygon.length >= 3) return await seg.cutPolygon(Object.assign(base, { polygon: a.polygon }));
     if (aiJob) return { ok: false, error: 'Нейросеть занята слежением за игроком. Подождите или обведите игрока мышью.' };
     const m = await posEnsureModels(event);
@@ -1433,30 +1192,6 @@ ipcMain.handle('pos-cut', async (event, a) => {
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
   } finally { posBusy = false; }
-});
-// ---------- журнал работы: запись из окна, папка, файл для отправки ----------
-ipcMain.on('xlog', (e, area, msg) => xlog(String(area || 'окно').slice(0, 30), String(msg || '').slice(0, 8000)));
-ipcMain.handle('logs-open', async () => { try { fs.mkdirSync(logDir(), { recursive: true }); await shell.openPath(logDir()); return { ok: true }; } catch (e) { return { ok: false, error: e.message }; } });
-ipcMain.handle('logs-save', async (event, ctx) => {
-  try {
-    const tail = (f, max) => { try { const t = fs.readFileSync(f, 'utf8'); return t.length > max ? '…(начало обрезано)\n' + t.slice(-max) : t; } catch (e) { return ''; } };
-    const parts = [];
-    parts.push('xVision ITAA ' + app.getVersion() + ' — журнал для разбора ошибки', 'Создан: ' + new Date().toLocaleString('ru-RU'),
-      'Система: ' + process.platform + ' ' + os.release() + ', ' + os.arch() + ', ОЗУ ' + Math.round(os.totalmem() / 1073741824) + ' ГБ, процессор: ' + ((os.cpus()[0] || {}).model || '?'),
-      'Electron ' + process.versions.electron + ', видеокарта для окна: ' + (gpuSafe ? 'выключена (безопасный режим)' : 'включена'), '');
-    if (ctx) parts.push('===== Текущий разбор =====', typeof ctx === 'string' ? ctx : JSON.stringify(ctx, null, 1), '');
-    let files = []; try { files = fs.readdirSync(logDir()).filter((n) => /^xvision-.*\.log$/.test(n)).sort().slice(-3); } catch (e) {}
-    files.forEach((n) => parts.push('===== ' + n + ' =====', tail(path.join(logDir(), n), 400000), ''));
-    parts.push('===== startup.log =====', tail(path.join(app.getPath('userData'), 'startup.log'), 20000), '');
-    parts.push('===== startup.prev.log =====', tail(path.join(app.getPath('userData'), 'startup.prev.log'), 20000), '');
-    try { parts.push('===== нейросеть =====', tail(ai.logPath(app.getPath('userData')), 60000), ''); } catch (e) {}
-    const d = new Date();
-    const out = path.join(app.getPath('desktop'), 'xVision журнал ' + logDay(d) + ' ' + pad2m(d.getHours()) + '-' + pad2m(d.getMinutes()) + '.txt');
-    fs.writeFileSync(out, parts.join('\n'), 'utf8');
-    xlog('журнал', 'сохранён для отправки:', out);
-    try { shell.showItemInFolder(out); } catch (e) {}
-    return { ok: true, path: out };
-  } catch (e) { return { ok: false, error: e.message || String(e) }; }
 });
 // журнал нейросети — показать файл в Проводнике, чтобы его можно было отправить разработчику
 ipcMain.handle('ai-report', async () => {
@@ -1687,9 +1422,9 @@ function fmtTs(t) {
 
 const TIME_RE = /time=(\d+):(\d+):(\d+\.\d+)/;
 
-function runFfmpeg(args, onTime, onProc, quiet) {
+function runFfmpeg(args, onTime, onProc) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(ffmpegPath, ['-hide_banner', ...args], { windowsHide: true });
+    const proc = spawn(ffmpegPath, args, { windowsHide: true });
     if (onProc) onProc(proc);
     let stderrTail = '';
     proc.stderr.on('data', (d) => {
@@ -1703,15 +1438,10 @@ function runFfmpeg(args, onTime, onProc, quiet) {
         }
       }
     });
-    proc.on('error', (e) => { xlog('ffmpeg', 'не запустился:', e.message); reject(e); });
+    proc.on('error', reject);
     proc.on('close', (code) => {
       if (code === 0) resolve();
-      else {
-        if (quiet) return reject(new Error('ffmpeg завершился с ошибкой (код ' + code + '):\n' + stderrTail.slice(-800)));
-        // в журнал — команда (без длинных путей к временным файлам) и конец вывода ffmpeg
-        xlog('ffmpeg', 'ошибка, код ' + code + ':', args.map((x) => String(x).length > 160 ? '…' + String(x).slice(-120) : String(x)).join(' '), '\n' + stderrTail.slice(-1500));
-        reject(new Error('ffmpeg завершился с ошибкой (код ' + code + '):\n' + stderrTail.slice(-800)));
-      }
+      else reject(new Error('ffmpeg завершился с ошибкой (код ' + code + '):\n' + stderrTail.slice(-800)));
     });
   });
 }
@@ -1864,12 +1594,10 @@ function detectEncoder() {
     ];
     for (const c of candidates) {
       try {
-        await runFfmpeg(['-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360:r=25:d=0.5', '-pix_fmt', 'yuv420p', ...c.args, '-f', 'null', '-'], null, null, true);
-        xlog('кодировщик', 'видеокарта для кодирования:', c.label);
+        await runFfmpeg(['-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360:r=25:d=0.5', '-pix_fmt', 'yuv420p', ...c.args, '-f', 'null', '-']);
         return { id: c.id, label: c.label, args: c.args, hw: true };
       } catch (e) { /* пробуем следующий */ }
     }
-    xlog('кодировщик', 'кодирование на процессоре (x264)');
     return { id: 'libx264', label: 'CPU (x264)', args: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22'], hw: false };
   })();
   return encoderPromise;
@@ -1905,17 +1633,6 @@ function hasAudioTrack(file) {
 
 // Частота кадров видео (для покадровой графики в экспорте). ffmpeg -i печатает «…, 50 fps, 50 tbr, …».
 const videoInfoCache = new Map();
-// Одинаковая шкала времени дорожки у всех клипов. Склейка «одним файлом» соединяет клипы без перекодирования
-// и берёт шкалу первого клипа; если у замедленного клипа шкала другая (например, 1/19992 вместо 1/12800),
-// его кадры растягиваются: ролик становится длиннее и «дёрганым».
-const TRACK_TS = ['-video_track_timescale', '90000'];
-// Частота кадров: средняя у видео из интернета бывает 24,99 или 29,96 — берём ближайшую стандартную.
-function snapFps(f) {
-  f = Number(f) || 0; if (!(f > 1 && f < 241)) return 0;
-  for (const st of [23.976, 29.97, 47.952, 59.94, 119.88]) if (Math.abs(f - st) < 0.02) return st;
-  const r = Math.round(f); if (Math.abs(f - r) < 0.06) return r;
-  return Math.round(f * 1000) / 1000;
-}
 function probeVideoInfo(file) {
   if (videoInfoCache.has(file)) return videoInfoCache.get(file);
   const p = new Promise((resolve) => {
@@ -1927,17 +1644,16 @@ function probeVideoInfo(file) {
     proc.on('close', () => {
       const line = (err.match(/Stream #\d+:\d+.*Video:.*/) || [''])[0];
       const num = (re) => { const m = re.exec(line); return m ? parseFloat(m[1]) * (/k$/.test(m[2] || '') ? 1000 : 1) : 0; };
-      // «tbr» — номинальная частота кадров, «fps» — средняя; номинальная точнее для замедления
-      const tbr = snapFps(num(/([\d.]+)(k?) tbr/)), avg = snapFps(num(/([\d.]+)(k?) fps/));
-      const fps = tbr && (!avg || Math.abs(tbr - avg) / tbr < 0.1) ? tbr : avg;
-      resolve({ fps });
+      let fps = num(/([\d.]+)(k?) fps/);
+      if (!(fps > 1 && fps < 241)) fps = num(/([\d.]+)(k?) tbr/);
+      resolve({ fps: fps > 1 && fps < 241 ? fps : 0 });
     });
   });
   videoInfoCache.set(file, p);
   return p;
 }
 ipcMain.handle('video-info', async (event, { videoPath }) => {
-  try { return await probeVideoInfo(seqLib.ffSource(videoPath)); } catch (e) { return { fps: 0 }; }
+  try { return await probeVideoInfo(videoPath); } catch (e) { return { fps: 0 }; }
 });
 
 // Запись PNG-сегментов разметки и списка ffconcat. Возвращает путь к списку.
@@ -1961,8 +1677,7 @@ function writeOverlayTimeline(dir, overlay) {
 // ---------- IPC: export ----------
 // clips: [{ name, start, end, overlay: { segments: [{ duration, png(base64) }] } | null }]
 // options: fastMode — клипы без разметки режутся без перекодирования (мгновенно, но начало может сдвинуться до ~2 с)
-ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, clips, mode, fastMode, mergedName }) => {
-  const sourcePath = seqLib.ffSource(srcIn); // склейка роликов: ffmpeg читает общий список частей
+ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mode, fastMode, mergedName }) => {
   if (!licOk()) return LIC_DENIED;
   const win = BrowserWindow.fromWebContents(event.sender);
   let lastSent = 0;
@@ -1988,9 +1703,6 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
     sendProgress(Math.round((sum / total) * trimWeight), label || ('Обработано клипов: ' + doneNames.length + ' из ' + total));
   };
 
-  const clipInfo = (c) => ({ name: String(c.name || '').slice(0, 40), s: +(+c.start).toFixed(3), e: +(+c.end).toFixed(3), sp: c.speed || undefined, mute: c.mute || undefined,
-    slows: (c.slows || []).length || undefined, freezes: (c.freezes || []).length || undefined, ov: c.overlay && c.overlay.segments ? c.overlay.segments.length : undefined, fps: c.fps || undefined });
-  xlog('выгрузка', 'начало:', JSON.stringify({ src: sourcePath, mode, fast: !!fastMode, n: clips.length, clips: clips.slice(0, 60).map(clipInfo) }));
   try {
     sendProgress(0, 'Определяю режим кодирования...', true);
     // «Одним файлом»: клипы с паузой, повтором, замедлением получают звук 48 кГц стерео, а простые — как в исходнике.
@@ -2000,7 +1712,6 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
     const audioNorm = merged && clips.some(fxClip) ? ['-ar', '48000', '-ac', '2'] : [];
     const needEncode = clips.some((c) => (c.overlay && c.overlay.segments && c.overlay.segments.length) || (c.freezes && c.freezes.length) || (c.slows && c.slows.length) || (c.speed > 0 && c.speed < 0.999)) || !fastMode || audioNorm.length > 0;
     const encoder = needEncode ? await detectEncoder() : SOFT_ENCODER;
-    xlog('выгрузка', 'кодировщик:', encoder.id, needEncode ? '' : '(копирование)', audioNorm.length ? 'звук 48 кГц' : '');
 
     const results = new Array(total);
 
@@ -2038,12 +1749,12 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
           if (g.mapAudio) args.push('-map', g.mapAudio);
           args.push(...enc.args);
           if (g.mapAudio) args.push('-c:a', 'aac', '-b:a', '160k', ...audioNorm);
-          args.push(...TRACK_TS, stageOut);
+          args.push(stageOut);
           return args;
         }
         if (copyMode) {
           return ['-y', '-nostdin', '-ss', fmtTs(clip.start), '-i', sourcePath, '-t', clipDuration.toFixed(3),
-            '-map', '0:v:0', '-map', '0:a?', '-c', 'copy', '-avoid_negative_ts', 'make_zero', ...TRACK_TS, stageOut];
+            '-map', '0:v:0', '-map', '0:a?', '-c', 'copy', '-avoid_negative_ts', 'make_zero', stageOut];
         }
         if (hasOverlay) {
           const listPath = writeOverlayTimeline(path.join(tmpDir, 'ov_' + i), clip.overlay);
@@ -2053,17 +1764,17 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
             '-t', clipDuration.toFixed(3),
             '-filter_complex', '[1:v]format=rgba[ov];[0:v][ov]overlay=eof_action=pass:format=auto,format=yuv420p[vout]',
             '-map', '[vout]', '-map', '0:a?',
-            ...enc.args, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, ...TRACK_TS, stageOut];
+            ...enc.args, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, stageOut];
         }
         return ['-y', '-nostdin', '-ss', fmtTs(clip.start), '-i', sourcePath, '-t', clipDuration.toFixed(3),
           '-map', '0:v:0', '-map', '0:a?', '-pix_fmt', 'yuv420p',
-          ...enc.args, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, ...TRACK_TS, stageOut];
+          ...enc.args, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, stageOut];
       };
 
       let usedEncoder = copyMode ? 'copy' : encoder.id;
       const audioPresent = hasFreezes ? await hasAudioTrack(sourcePath) : true;
       // частота кадров исходника — для повторов (замедленный отрезок выводится с той же частотой)
-      let srcFps = snapFps(clip.fps);
+      let srcFps = Number(clip.fps) || 0;
       if (!(srcFps > 1) && freezes.some((f) => f.src)) { try { srcFps = (await probeVideoInfo(sourcePath)).fps || 0; } catch (e) { srcFps = 0; } }
       try {
         await runFfmpeg(buildArgs(encoder, audioPresent), onTime);
@@ -2106,7 +1817,7 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
             if (silence) a.push('-map', '0:a:0', '-af', 'volume=0', '-c:a', 'aac', '-b:a', '160k', ...audioNorm);
             a.push('-c:v', 'copy');
           }
-          a.push(...TRACK_TS, outPath);
+          a.push(outPath);
           return a;
         };
         const onTime2 = (seconds) => { fractions[i] = Math.min(0.99, share1 + (1 - share1) * Math.min(1, seconds / finalDur)); reportOverall(); };
@@ -2121,7 +1832,7 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
       fractions[i] = 1;
       doneNames.push(clip.name);
       reportOverall('Готово клипов: ' + doneNames.length + ' из ' + total);
-      results[i] = { path: outPath, name: clip.name, copied: copyMode && !needFx, expected: outDuration / speed };
+      results[i] = { path: outPath, name: clip.name, copied: copyMode && !needFx };
       return usedEncoder;
     };
 
@@ -2162,28 +1873,14 @@ ipcMain.handle('export-clips', async (event, { sourcePath: srcIn, outputDir, cli
       } else {
         await runFfmpeg(['-y', '-nostdin', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', mergedOut]);
       }
-      // проверка: длина готового файла = сумма клипов. Если склейка без перекодирования растянула время
-      // (разные параметры клипов) — собираем заново с перекодированием.
-      const expected = results.reduce((a, r) => a + (r.expected || 0), 0);
-      let got = 0; try { got = ((await probeMedia(mergedOut)) || {}).duration || 0; } catch (e) {}
-      xlog('выгрузка', 'одним файлом: ожидалось ' + expected.toFixed(2) + ' с, получилось ' + got.toFixed(2) + ' с', mixed ? '(с перекодированием)' : '');
-      if (!mixed && got > 0 && Math.abs(got - expected) > Math.max(1, expected * 0.03)) {
-        sendProgress(95, 'Объединяю клипы заново...', true);
-        await runFfmpeg(['-y', '-nostdin', '-f', 'concat', '-safe', '0', '-i', listFile, '-pix_fmt', 'yuv420p',
-          ...SOFT_ENCODER.args, '-c:a', 'aac', '-b:a', '160k', mergedOut]);
-        try { got = ((await probeMedia(mergedOut)) || {}).duration || 0; } catch (e) {}
-        xlog('выгрузка', 'пересобрано с перекодированием: ' + got.toFixed(2) + ' с');
-      }
       files = [mergedOut];
     } else {
       files = results.map((r) => r.path);
     }
     files.forEach((f) => createdFiles.push(f));
     sendProgress(100, 'Готово', true);
-    xlog('выгрузка', 'готово за ' + Math.round((Date.now() - startedAt) / 1000) + ' с:', files.map((f) => path.basename(f)).join(', '), 'кодировщики:', encodersText);
     return { ok: true, files, seconds: Math.round((Date.now() - startedAt) / 100) / 10, encoder: encodersText };
   } catch (err) {
-    xlog('выгрузка', 'ошибка:', err.message || String(err));
     return { ok: false, error: err.message || String(err) };
   } finally {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}

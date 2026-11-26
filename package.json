@@ -1,6 +1,6 @@
 {
   "name": "hockey-video-analysis-itaa",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "xVision (оформление ITAA) — хоккейная видеоаналитика: нарезка, теги, разметка, экспорт",
   "author": "Дудин Данила",
   "main": "main.js",
@@ -37,7 +37,6 @@
       "Что нового.txt",
       "live.js",
       "vkdvr.js",
-      "sequence.js",
       "vendor/hls.min.js",
       "index.html",
       "coach.html",
