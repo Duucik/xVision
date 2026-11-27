@@ -1709,10 +1709,19 @@ ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mod
     // Если их склеить как есть, звук уезжает от картинки. Поэтому в таком наборе звук всех клипов приводится к одному виду
     // (и клипы не копируются из исходника, а кодируются — тогда итоговая склейка идёт без повторного кодирования).
     const fxClip = (c) => (c.freezes && c.freezes.length) || (c.slows && c.slows.length) || (c.speed > 0 && c.speed < 0.999) || c.mute;
-    const audioNorm = merged && clips.some(fxClip) ? ['-ar', '48000', '-ac', '2'] : [];
-    const needEncode = clips.some((c) => (c.overlay && c.overlay.segments && c.overlay.segments.length) || (c.freezes && c.freezes.length) || (c.slows && c.slows.length) || (c.speed > 0 && c.speed < 0.999)) || !fastMode || audioNorm.length > 0;
+    const mergedFx = merged && clips.some(fxClip);
+    const silentMerge = mergedFx && clips.every((c) => c.mute);
+    const audioNorm = mergedFx && !silentMerge ? ['-ar', '48000', '-ac', '2'] : [];
+    const needEncode = clips.some((c) => (c.overlay && c.overlay.segments && c.overlay.segments.length) || (c.freezes && c.freezes.length) || (c.slows && c.slows.length) || (c.speed > 0 && c.speed < 0.999)) || !fastMode || mergedFx;
     const encoder = needEncode ? await detectEncoder() : SOFT_ENCODER;
 
+    // concat -c copy читает все части с одной шкалой времени, включая части без эффектов.
+    let exportFps = 0;
+    if (mergedFx) {
+      const info = await probeVideoInfo(sourcePath);
+      exportFps = info.fps || Number(clips[0].fps) || 30;
+    }
+    const trackScale = mergedFx ? ['-video_track_timescale', '90000'] : [];
     const results = new Array(total);
 
     const processClip = async (i) => {
@@ -1728,8 +1737,8 @@ ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mod
       // замедление всего клипа (скорость 0.1–1) и «без звука» делаются вторым проходом по уже готовому клипу
       const speed = clip.speed > 0 && clip.speed < 0.999 ? Math.max(0.1, Number(clip.speed)) : 1;
       const mute = !!clip.mute;
-      const needFx = speed < 1 || mute;
-      const copyMode = !!fastMode && !hasOverlay && !hasFreezes && speed === 1 && !audioNorm.length;
+      const needFx = speed < 1 || (mute && !silentMerge);
+      const copyMode = !!fastMode && !hasOverlay && !hasFreezes && speed === 1 && !mergedFx;
       const outPath = merged
         ? path.join(tmpDir, 'clip_' + i + '.mp4')
         : uniquePath(outputDir, sanitizeFileName(clip.name), '.mp4', usedNames);
@@ -1740,14 +1749,17 @@ ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mod
         reportOverall();
       };
 
+      const audioMap = silentMerge ? ['-an'] : ['-map', '0:a?'];
       const buildArgs = (enc, audioPresent) => {
+        const rate = exportFps || (hasFreezes ? srcFps : 0);
+        const videoOutput = [...enc.args, ...(rate > 1 ? ['-r', String(rate), '-fps_mode', 'cfr'] : []), ...trackScale];
         if (hasFreezes) {
           const g = freezeLib.buildFreezeGraph({ freezes, slows, clipDuration, hasAudio: audioPresent, hasOverlay, fps: srcFps });
           const args = ['-y', '-nostdin', '-ss', fmtTs(clip.start), '-t', clipDuration.toFixed(3), '-i', sourcePath];
           if (hasOverlay) args.push('-f', 'concat', '-safe', '0', '-i', writeOverlayTimeline(path.join(tmpDir, 'ov_' + i), clip.overlay));
           args.push('-t', outDuration.toFixed(3), '-filter_complex', g.filter, '-map', '[vout]');
           if (g.mapAudio) args.push('-map', g.mapAudio);
-          args.push(...enc.args);
+          args.push(...videoOutput);
           if (g.mapAudio) args.push('-c:a', 'aac', '-b:a', '160k', ...audioNorm);
           args.push(stageOut);
           return args;
@@ -1763,19 +1775,19 @@ ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mod
             '-f', 'concat', '-safe', '0', '-i', listPath,
             '-t', clipDuration.toFixed(3),
             '-filter_complex', '[1:v]format=rgba[ov];[0:v][ov]overlay=eof_action=pass:format=auto,format=yuv420p[vout]',
-            '-map', '[vout]', '-map', '0:a?',
-            ...enc.args, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, stageOut];
+            '-map', '[vout]', ...audioMap,
+            ...videoOutput, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, stageOut];
         }
         return ['-y', '-nostdin', '-ss', fmtTs(clip.start), '-i', sourcePath, '-t', clipDuration.toFixed(3),
-          '-map', '0:v:0', '-map', '0:a?', '-pix_fmt', 'yuv420p',
-          ...enc.args, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, stageOut];
+          '-map', '0:v:0', ...audioMap, '-pix_fmt', 'yuv420p',
+          ...videoOutput, '-c:a', 'aac', '-b:a', '160k', ...audioNorm, stageOut];
       };
 
       let usedEncoder = copyMode ? 'copy' : encoder.id;
-      const audioPresent = hasFreezes ? await hasAudioTrack(sourcePath) : true;
+      const audioPresent = hasFreezes && !silentMerge && await hasAudioTrack(sourcePath);
       // частота кадров исходника — для повторов (замедленный отрезок выводится с той же частотой)
-      let srcFps = Number(clip.fps) || 0;
-      if (!(srcFps > 1) && freezes.some((f) => f.src)) { try { srcFps = (await probeVideoInfo(sourcePath)).fps || 0; } catch (e) { srcFps = 0; } }
+      let srcFps = exportFps || Number(clip.fps) || 0;
+      if (!(srcFps > 1) && hasFreezes) { try { srcFps = (await probeVideoInfo(sourcePath)).fps || 0; } catch (e) { srcFps = 0; } }
       try {
         await runFfmpeg(buildArgs(encoder, audioPresent), onTime);
       } catch (e) {
@@ -1789,7 +1801,7 @@ ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mod
         }
       }
       if (needFx) {
-        const a1 = await hasAudioTrack(stageOut);
+        const a1 = !silentMerge && await hasAudioTrack(stageOut);
         let fxFps = srcFps;
         if (speed < 1 && !(fxFps > 1)) { try { fxFps = (await probeVideoInfo(sourcePath)).fps || 0; } catch (e) { fxFps = 0; } }
         const finalDur = outDuration / speed;
@@ -1817,7 +1829,8 @@ ipcMain.handle('export-clips', async (event, { sourcePath, outputDir, clips, mod
             if (silence) a.push('-map', '0:a:0', '-af', 'volume=0', '-c:a', 'aac', '-b:a', '160k', ...audioNorm);
             a.push('-c:v', 'copy');
           }
-          a.push(outPath);
+          if (speed < 1 && fxFps > 1) a.push('-r', String(fxFps), '-fps_mode', 'cfr');
+          a.push(...trackScale, outPath);
           return a;
         };
         const onTime2 = (seconds) => { fractions[i] = Math.min(0.99, share1 + (1 - share1) * Math.min(1, seconds / finalDur)); reportOverall(); };
