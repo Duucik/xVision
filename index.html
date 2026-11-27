@@ -4927,8 +4927,14 @@
       });
     });
 
-    const marks = new Set([0]);
-    items.forEach((it) => { [it.from, it.to].forEach((tt) => { if (isFinite(tt) && tt > 0 && tt < total) marks.add(tt); }); });
+    const boundaries = new Set([0]);
+    for (const list of [items, hlItems, repItems, gItems]) {
+      for (const { from, to } of list) {
+        if (from > 0 && from < total) boundaries.add(from);
+        if (to > 0 && to < total) boundaries.add(to);
+      }
+    }
+    const marks = new Set(boundaries);
     // Подсветка движется — новая картинка на КАЖДЫЙ кадр видео (50 к/с для 50-кадрового видео), строго по сетке кадров.
     // Раньше было 30 в секунду: на 50-кадровом видео кольцо стояло кадр-два и прыгало — графика «рвалась».
     const FPS = clamp(videoFps || 30, 20, 60);
@@ -4941,11 +4947,9 @@
         const frozen = fz.some((f) => { if (f.rep) return false; const o = outT(f.t); return r > o + 1e-6 && r < o + f.dur - 1e-6; }); // в паузе кадр стоит — лишние картинки не нужны
         if (r > 0 && r < total && !frozen) marks.add(r);
       }
-      [it.from, it.to].forEach((tt) => { if (tt > 0 && tt < total) marks.add(tt); });
     });
     // плашка «ПОВТОР»: границы и кадры плавного появления/исчезновения
     repItems.forEach((it) => {
-      [it.from, it.to].forEach((tt) => { if (tt > 0 && tt < total) marks.add(tt); });
       [[it.from, it.from + ED_FADE], [it.to - ED_FADE, it.to]].forEach(([a, b]) => {
         for (let k = Math.ceil(a * FPS + 1e-6); k / FPS < b - 1e-6; k++) { const r = R(k / FPS); if (r > 0 && r < total) marks.add(r); }
       });
@@ -4955,15 +4959,16 @@
       const edges = [];
       if (it.fa >= 0) edges.push([it.from, Math.min(it.to, it.from + ED_FADE)]);
       if (isFinite(it.fb)) edges.push([Math.max(it.from, it.to - ED_FADE), it.to]);
-      [it.from, it.to].forEach((tt) => { if (isFinite(tt) && tt > 0 && tt < total) marks.add(tt); });
       edges.forEach(([a, b]) => {
         if (a > 0 && a < total) marks.add(a);
         if (b > 0 && b < total) marks.add(b);
         for (let k = Math.ceil(a * FPS + 1e-6); k / FPS < b - 1e-6; k++) { const r = R(k / FPS); if (r > 0 && r < total) marks.add(r); }
       });
     });
-    let times = Array.from(marks).sort((x, y) => x - y);
-    times = times.filter((tt, i) => i === 0 || tt - times[i - 1] > Math.min(0.004, HL_STEP * 0.25)); // отбрасываем почти совпадающие метки
+    // Границы видимости должны попасть в экспорт даже между двумя кадрами анимации.
+    const times = Array.from(marks).sort((x, y) => x - y).filter((tt, i, all) =>
+      boundaries.has(tt) || ![all[i - 1], all[i + 1]].some((other) =>
+        boundaries.has(other) && Math.abs(tt - other) <= Math.min(0.004, HL_STEP * 0.25)));
 
     const off = document.createElement('canvas');
     off.width = w; off.height = h;
