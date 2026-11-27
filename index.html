@@ -60,11 +60,10 @@
   .tbtn { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 7px;
     background: var(--panel); border: 1px solid var(--border2); font-weight: 500; white-space: nowrap; }
   .tbtn:hover { border-color: var(--chrome); background: var(--panel2); }
+  #relaxBtn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); }
   .tbtn.icon { width: 30px; padding: 0; justify-content: center; }
   .tbtn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
   .tbtn.primary:hover { filter: brightness(1.08); background: var(--accent); }
-  .tbtn.relax-btn.on { background: #E3343C; border-color: #E3343C; color: #fff; font-weight: 700; box-shadow: 0 0 0 3px rgba(227,52,60,0.22); }
-  .tbtn.relax-btn.on:hover { filter: brightness(1.08); }
   .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
   /* переключатель разделов: Видеоаналитика / Тренерская */
   .mode-sw { display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border2); margin-left: 6px; -webkit-app-region: no-drag; }
@@ -73,7 +72,7 @@
   .mode-sw button.on { background: var(--panel3); color: var(--text); }
   .mode-sw button[data-mode="coach"].on { background: var(--accent); color: var(--accent-ink); }
   .mode-sw .ic { width: 15px; height: 15px; }
-  body.coach-mode .tb-center > *, body.coach-mode #saveStatus, body.coach-mode #timingBtn, body.coach-mode #linkBtn, body.coach-mode #loadVideoBtn { display: none !important; }
+  body.coach-mode .tb-center > *, body.coach-mode #saveStatus, body.coach-mode #relaxBtn, body.coach-mode #timingBtn, body.coach-mode #linkBtn, body.coach-mode #loadVideoBtn { display: none !important; }
   .coach-layer { position: fixed; left: 0; right: 0; bottom: 0; top: var(--title-h); z-index: 45; background: #131315; display: none; overflow: hidden; }
   body.coach-mode .coach-layer { display: block; }
   .coach-layer iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #131315; }
@@ -1100,7 +1099,6 @@
     <symbol id="i-slow" viewBox="0 0 24 24"><path d="M3.5 17.5a8.5 8.5 0 1 1 17 0"/><path d="M12 17.5 7.6 12.6"/><circle cx="12" cy="17.5" r="1.2" fill="currentColor"/></symbol>
     <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/><path d="m10.5 9 4.5 3-4.5 3z"/></symbol>
     <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
-    <symbol id="i-relax" viewBox="0 0 24 24"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></symbol>
     <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5V4.5h8l9 9-8 8z"/><circle cx="8" cy="9" r="1.4"/></symbol>
   </defs>
 </svg>
@@ -1119,7 +1117,7 @@
     <div class="tb-center"><span class="file-chip" id="fileChip"></span></div>
     <div class="tb-right">
       <span class="save-status" id="saveStatus"></span>
-      <button class="tbtn relax-btn" id="relaxBtn" style="display:none;"><svg class="ic"><use href="#i-relax"/></svg><span>Relax</span></button>
+      <button type="button" class="tbtn" id="relaxBtn" aria-pressed="false" style="display:none;">Relax</button>
       <button class="tbtn" id="timingBtn" style="display:none;"><svg class="ic"><use href="#i-timer"/></svg><span data-i18n="timing_btn">Тайминги</span></button>
       <button class="tbtn" id="linkBtn"><svg class="ic"><use href="#i-link"/></svg><span data-i18n="link_btn">По ссылке</span></button>
       <button class="tbtn" id="loadVideoBtn"><svg class="ic"><use href="#i-folder"/></svg><span id="fileLabel">Открыть видео</span></button>
@@ -1491,6 +1489,15 @@
     </div>
 
     <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settings_mode">Режим работы</div>
+      <div class="sub" data-i18n="settings_mode_hint">«Relax» — видео занимает всё рабочее место. Теги, рисование, подсказки и плеер прячутся и появляются, когда подводите мышь к краю: теги — сверху, рисование — слева, подсказки — справа, плеер и журнал клипов — снизу. Снятый клип (F — начало, F — конец) сразу предлагается подписать: Enter — сохранить и смотреть дальше.</div>
+      <div class="lang-switch">
+        <button type="button" class="lang-btn" id="modeNormalBtn" data-i18n="mode_normal">Обычный</button>
+        <button type="button" class="lang-btn" id="modeRelaxBtn" data-i18n="mode_relax">Relax</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-section-title" data-i18n="settings_ai">Нейросеть (подсветка игроков)</div>
       <div class="sub" data-i18n="settings_ai_hint">«Авто» — программа сама проверяет видеокарту и, если она не подходит, считает на процессоре. Если на компьютере нет отдельной видеокарты и игроки не находятся — выберите «Только процессор»: работает на любом компьютере, но слежение идёт медленнее.</div>
       <div class="lang-switch">
@@ -1726,7 +1733,7 @@
       hold_label: 'Пауза на рисунке', hold_off: 'Выкл', hold_s: 'с',
       split_label: 'Журнал клипов ({n}) ▲', lc_cap: 'Последний клип', lc_play: 'С начала', lc_edit: 'Редактор', lc_tip: 'Щелчок — смотреть клип с начала, правая кнопка — редактор клипа. Название можно исправить прямо здесь.', rc_cap: 'Ранее', lc_tip_short: 'Щелчок — смотреть с начала, правая кнопка — редактор клипа',
       cp_title: 'Клип снят', cp_hint: 'Enter — сохранить и смотреть дальше · Esc — оставить название', cp_edit: 'Редактор клипа', cp_ok: 'Сохранить',
-      settings_mode: 'Режим работы', mode_normal: 'Обычный', mode_relax: 'Relax', mode_relax_on: 'Режим Relax: инструменты появляются, когда подводите мышь к краю экрана. Выключить — снова кнопкой Relax.', relax_on_tip: '«Relax» — видео занимает всё рабочее место. Теги, рисование, подсказки и плеер появляются, когда подводите мышь к краю экрана.', relax_off_tip: 'Выйти из режима Relax',
+      settings_mode: 'Режим работы', mode_normal: 'Обычный', mode_relax: 'Relax', mode_relax_on: 'Режим Relax: инструменты появляются, когда подводите мышь к краю экрана.',
       settings_mode_hint: '«Relax» — видео занимает всё рабочее место. Теги, рисование, подсказки и плеер прячутся и появляются, когда подводите мышь к краю: теги — сверху, рисование — слева, подсказки — справа, плеер и журнал клипов — снизу. Снятый клип (F — начало, F — конец) сразу предлагается подписать: Enter — сохранить и смотреть дальше.', slow_mark: 'Клип замедлен', split_last: 'Последний', split_last_tip: 'Последний снятый клип — щелчок воспроизводит его',
       tf_cap: 'Теги', tf_all: 'Все', tf_none: 'Без тега', tf_hint: 'Щелчок по тегу — только его клипы; можно выбрать несколько',
       home_merge: 'Склеить видеоролики', merge_title: 'Склейка видеороликов',
@@ -1876,7 +1883,7 @@
       hold_label: 'Pause on drawing', hold_off: 'Off', hold_s: 's',
       split_label: 'Clip log ({n}) ▲', lc_cap: 'Last clip', lc_play: 'From start', lc_edit: 'Editor', lc_tip: 'Click to watch the clip from the start, right-click for the clip editor. You can rename it right here.', rc_cap: 'Earlier', lc_tip_short: 'Click to watch from the start, right-click for the clip editor',
       cp_title: 'Clip recorded', cp_hint: 'Enter — save and keep watching · Esc — keep the name', cp_edit: 'Clip editor', cp_ok: 'Save',
-      settings_mode: 'Work mode', mode_normal: 'Normal', mode_relax: 'Relax', mode_relax_on: 'Relax mode: tools appear when you move the mouse to the screen edge. Press Relax again to turn it off.', relax_on_tip: '“Relax” — the video takes the whole workspace. Tags, drawing, tips and the player appear when you move the mouse to an edge.', relax_off_tip: 'Leave Relax mode',
+      settings_mode: 'Work mode', mode_normal: 'Normal', mode_relax: 'Relax', mode_relax_on: 'Relax mode: tools appear when you move the mouse to the screen edge.',
       settings_mode_hint: '“Relax” — the video takes the whole workspace. Tags, drawing, tips and the player hide and appear when you move the mouse to an edge: tags — top, drawing — left, tips — right, player and clip log — bottom. A recorded clip (F — start, F — end) is offered for naming right away: Enter — save and keep watching.', slow_mark: 'Slow-motion clip', split_last: 'Last', split_last_tip: 'Last recorded clip — click to play it',
       tf_cap: 'Tags', tf_all: 'All', tf_none: 'No tag', tf_hint: 'Click a tag to show only its clips; several can be selected',
       home_merge: 'Join video files', merge_title: 'Join video files',
@@ -2100,7 +2107,8 @@
     mainView.classList.remove('active');
     tagBar.classList.remove('show');
     homeView.style.display = 'flex';
-    timingBtn.style.display = 'none'; $('relaxBtn').style.display = 'none';
+    $('relaxBtn').style.display = 'none';
+    timingBtn.style.display = 'none';
     fileChip.classList.remove('show');
     projectLoaded = false;
     currentVideoPath = null;
@@ -2111,7 +2119,8 @@
     homeView.style.display = 'none';
     mainView.classList.add('active');
     tagBar.classList.add('show');
-    timingBtn.style.display = ''; $('relaxBtn').style.display = '';
+    $('relaxBtn').style.display = '';
+    timingBtn.style.display = '';
     fitVideoBox();
   }
 
@@ -5695,18 +5704,22 @@
   // ---------- режим Relax ----------
   function applyWorkMode() {
     const rx = appSettings.workMode === 'relax';
+    $('relaxBtn').setAttribute('aria-pressed', String(rx));
     document.body.classList.toggle('relax', rx);
     if (!rx) document.body.classList.remove('rx-top', 'rx-left', 'rx-right', 'rx-bottom');
-    $('relaxBtn').classList.toggle('on', rx); $('relaxBtn').title = t(rx ? 'relax_off_tip' : 'relax_on_tip');
+    $('modeNormalBtn').classList.toggle('active', !rx); $('modeRelaxBtn').classList.toggle('active', rx);
     if (!rx) hideClipPop(false);
     fitVideoBox();
   }
-  $('relaxBtn').addEventListener('click', (e) => {
-    const on = appSettings.workMode !== 'relax';
-    appSettings.workMode = on ? 'relax' : 'normal'; saveAppSettings(); applyWorkMode();
-    if (on) toast(t('mode_relax_on'));
-    e.currentTarget.blur();
-  });
+  function setWorkMode(mode) {
+    appSettings.workMode = mode;
+    saveAppSettings();
+    applyWorkMode();
+    if (mode === 'relax') toast(t('mode_relax_on'));
+  }
+  $('modeNormalBtn').addEventListener('click', () => setWorkMode('normal'));
+  $('modeRelaxBtn').addEventListener('click', () => setWorkMode('relax'));
+  $('relaxBtn').addEventListener('click', () => setWorkMode(appSettings.workMode === 'relax' ? 'normal' : 'relax'));
   // какие края показывать: мышь у края рабочего места (рисование кистью этого не меняет)
   function relaxZones(x, y, buttons) {
     if (!document.body.classList.contains('relax') || !mainView.classList.contains('active')) return;
@@ -5767,7 +5780,7 @@
   $('gpuOffBtn').addEventListener('click', () => setGpuSafe(true));
   updateGpuButtons();
   settingsBtn.addEventListener('click', updateAiButtons);
-  
+  settingsBtn.addEventListener('click', () => { const rx = appSettings.workMode === 'relax'; $('modeNormalBtn').classList.toggle('active', !rx); $('modeRelaxBtn').classList.toggle('active', rx); });
   langEnBtn.addEventListener('click', () => { applyLanguage('en'); saveAppSettings(); });
   changeProjectsFolderBtn.addEventListener('click', async () => {
     const folder = await window.api.selectProjectsFolder();
